@@ -20,16 +20,6 @@ function GetAngleBetweenLines(line1, line2) {
     var tan = (line2.k - line1.k) / (1 + line1.k * line2.k);
     return Math.atan(tan);
 }
-function RotatePointAroundAnotherPoint(center, point, angle) {
-    var rotatedPoint = new DOMPoint(point.x, point.y);
-    rotatedPoint.x -= center.x;
-    rotatedPoint.y -= center.y;
-    rotatedPoint.x = rotatedPoint.x * Math.cos(angle) - rotatedPoint.y * Math.sin(angle);
-    rotatedPoint.y = rotatedPoint.x * Math.sin(angle) + rotatedPoint.y * Math.cos(angle);
-    rotatedPoint.x += center.x;
-    rotatedPoint.y += center.y;
-    return rotatedPoint;
-}
 function DegToRad(angle) {
     return angle / Math.PI * 180;
 }
@@ -47,20 +37,26 @@ var Line = /** @class */ (function () {
     }
     Line.prototype.XInDeterminantSpace = function (x) {
         var inDeterminantSpace = false;
-        if (this.x1 == Number.NEGATIVE_INFINITY && isFinite(this.x2) && x < this.x2) {
-            inDeterminantSpace = true;
+        if (this.x1 == Number.NEGATIVE_INFINITY) {
+            if (isFinite(this.x2) && x < this.x2) {
+                inDeterminantSpace = true;
+            }
+            else if (this.x2 == Number.POSITIVE_INFINITY) {
+                inDeterminantSpace = true;
+            }
         }
-        else if (this.x2 == Number.POSITIVE_INFINITY && isFinite(this.x1) && x > this.x1) {
-            inDeterminantSpace = true;
-        }
-        else if (isFinite(this.x2) && isFinite(this.x1) && x > this.x1 && x < this.x2) {
-            inDeterminantSpace = true;
-        }
-        else if (this.x1 == Number.NEGATIVE_INFINITY && this.x2 == Number.POSITIVE_INFINITY) {
-            inDeterminantSpace = true;
+        else if (this.x2 == Number.POSITIVE_INFINITY) {
+            if (isFinite(this.x1) && x > this.x1) {
+                inDeterminantSpace = true;
+            }
+            else if (this.x1 == Number.NEGATIVE_INFINITY) {
+                inDeterminantSpace = true;
+            }
         }
         else {
-            inDeterminantSpace = false;
+            if (x > this.x1 && x < this.x2) {
+                inDeterminantSpace = true;
+            }
         }
         return inDeterminantSpace;
     };
@@ -103,12 +99,16 @@ var Line = /** @class */ (function () {
     };
     Line.prototype.GetRotatedLine = function (angle, x) {
         var center = this.GetPoint(x);
-        //var x0Point = this.GetPoint(0);
-        //var rotatedPoint = RotatePointAroundAnotherPoint(center, x0Point, angle);
         var k = (Math.tan(angle) + this.k) / (1 - Math.tan(angle) * this.k);
-        //new Line(rotatedPoint, center)
         var rotatedLine = Line.CreateLineByK(center, k);
         return rotatedLine;
+    };
+    Line.prototype.GetMidPoint = function () {
+        var point1 = this.GetPoint(this.x1);
+        var point2 = this.GetPoint(this.x2);
+        var midX = (point2.x - point1.x) / 2 + point1.x;
+        var midY = (point2.y - point1.y) / 2 + point1.y;
+        return new DOMPoint(midX, midY);
     };
     return Line;
 }());
@@ -153,7 +153,7 @@ var Ray = /** @class */ (function () {
         }
     };
     Ray.prototype.GetIntersecion = function (element) {
-        return new Line(element.Point1, element.Point2).GetIntersection(this.line);
+        return element.Line.GetIntersection(this.line);
     };
     Object.defineProperty(Ray.prototype, "Line", {
         get: function () {
@@ -183,6 +183,13 @@ var OpticalElement = /** @class */ (function () {
         this.line.x1 = Math.min(this.point1.x, this.point2.x);
         this.line.x2 = Math.max(this.point1.x, this.point2.x);
     };
+    Object.defineProperty(OpticalElement.prototype, "Line", {
+        get: function () {
+            return this.line;
+        },
+        enumerable: false,
+        configurable: true
+    });
     Object.defineProperty(OpticalElement.prototype, "Point1", {
         get: function () {
             return this.point1;

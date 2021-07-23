@@ -8,21 +8,6 @@ function GetAngleBetweenLines(line1: Line, line2: Line): number {
 	return Math.atan(tan);
 }
 
-function RotatePointAroundAnotherPoint(center: DOMPoint, point: DOMPoint, angle: number): DOMPoint {
-	var rotatedPoint = new DOMPoint(point.x, point.y);
-
-	rotatedPoint.x -= center.x;
-	rotatedPoint.y -= center.y;
-
-	rotatedPoint.x = rotatedPoint.x * Math.cos(angle) - rotatedPoint.y * Math.sin(angle);
-	rotatedPoint.y = rotatedPoint.x * Math.sin(angle) + rotatedPoint.y * Math.cos(angle);
-
-	rotatedPoint.x += center.x;
-	rotatedPoint.y += center.y;
-
-	return rotatedPoint;
-}
-
 function DegToRad(angle: number) {
 	return angle / Math.PI * 180;
 }
@@ -36,20 +21,26 @@ class Line {
 
 	public XInDeterminantSpace(x: number): boolean {
 		var inDeterminantSpace = false;
-		if (this.x1 == Number.NEGATIVE_INFINITY && isFinite(this.x2) && x < this.x2) {
-			inDeterminantSpace = true;
+		if (this.x1 == Number.NEGATIVE_INFINITY) {
+			if (isFinite(this.x2) && x < this.x2) {
+				inDeterminantSpace = true;
+			}
+			else if (this.x2 == Number.POSITIVE_INFINITY) {
+				inDeterminantSpace = true;
+			}
 		}
-		else if (this.x2 == Number.POSITIVE_INFINITY && isFinite(this.x1) && x > this.x1) {
-			inDeterminantSpace = true;
-		}
-		else if (isFinite(this.x2) && isFinite(this.x1) && x > this.x1 && x < this.x2) {
-			inDeterminantSpace = true;
-		}
-		else if (this.x1 == Number.NEGATIVE_INFINITY && this.x2 == Number.POSITIVE_INFINITY) {
-			inDeterminantSpace = true;
+		else if (this.x2 == Number.POSITIVE_INFINITY) {
+			if (isFinite(this.x1) && x > this.x1) {
+				inDeterminantSpace = true;
+			}
+			else if (this.x1 == Number.NEGATIVE_INFINITY) {
+				inDeterminantSpace = true;
+			}
 		}
 		else {
-			inDeterminantSpace = false;
+			if (x > this.x1 && x < this.x2) {
+				inDeterminantSpace = true;
+			}
 		}
 		return inDeterminantSpace;
 	}
@@ -110,16 +101,21 @@ class Line {
 	public GetRotatedLine(angle: number, x: number): Line {
 		var center = this.GetPoint(x);
 
-		//var x0Point = this.GetPoint(0);
-
-		//var rotatedPoint = RotatePointAroundAnotherPoint(center, x0Point, angle);
-
 		var k = (Math.tan(angle) + this.k) / (1 - Math.tan(angle) * this.k);
 
-		//new Line(rotatedPoint, center)
 		var rotatedLine = Line.CreateLineByK(center, k);
 
 		return rotatedLine;
+	}
+
+	public GetMidPoint(): DOMPoint {
+		var point1 = this.GetPoint(this.x1);
+		var point2 = this.GetPoint(this.x2);
+
+		var midX = (point2.x - point1.x) / 2 + point1.x;
+		var midY = (point2.y - point1.y) / 2 + point1.y;
+
+		return new DOMPoint(midX, midY);
 	}
 }
 
@@ -164,7 +160,7 @@ class Ray {
 	}
 
 	public GetIntersecion(element: OpticalElement): DOMPoint {
-		return new Line(element.Point1, element.Point2).GetIntersection(this.line);
+		return element.Line.GetIntersection(this.line);
 	}
 
 	public get Line(): Line {
@@ -193,6 +189,10 @@ class OpticalElement {
 	}
 
 	protected line: Line;
+
+	public get Line(): Line {
+		return this.line;
+	}
 
 	public get Point1(): DOMPoint {
 		return this.point1;
