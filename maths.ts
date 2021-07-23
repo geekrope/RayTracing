@@ -3,31 +3,56 @@
 }
 
 function GetAngleBetweenLines(line1: Line, line2: Line): number {
-	return 0;
+	var tan = (line2.k - line1.k) / (1 + line1.k * line2.k);
+
+	return Math.atan(tan);
 }
 
-function GetAngleBetweenLineAndHorizon(line1: Line, y: number): number {
-	var horizon = Line.CreateLineByB(y);
-	var intersection = horizon.GetIntersection(line1);
-	if (!intersection) {
-		return Math.PI;
-	}
-	else {
-		var x0Point = line1.GetPoint(0);
-		var dist = GetDistance(new DOMPoint(0, 0), x0Point);
+function RotatePointAroundAnotherPoint(center: DOMPoint, point: DOMPoint, angle: number): DOMPoint {
+	var rotatedPoint = new DOMPoint(point.x, point.y);
 
-		var angle = Math.acos((x0Point.x - intersection.x) / dist);
+	rotatedPoint.x -= center.x;
+	rotatedPoint.y -= center.y;
 
-		return angle;
-	}
+	rotatedPoint.x = rotatedPoint.x * Math.cos(angle) - rotatedPoint.y * Math.sin(angle);
+	rotatedPoint.y = rotatedPoint.x * Math.sin(angle) + rotatedPoint.y * Math.cos(angle);
+
+	rotatedPoint.x += center.x;
+	rotatedPoint.y += center.y;
+
+	return rotatedPoint;
+}
+
+function DegToRad(angle: number) {
+	return angle / Math.PI * 180;
 }
 
 class Line {
-	public x1 = Number.MIN_VALUE;
-	public x2 = Number.MAX_VALUE;
+	public x1 = Number.NEGATIVE_INFINITY;
+	public x2 = Number.POSITIVE_INFINITY;
 
 	public k: number;
 	public b: number;
+
+	public XInDeterminantSpace(x: number): boolean {
+		var inDeterminantSpace = false;
+		if (this.x1 == Number.NEGATIVE_INFINITY && isFinite(this.x2) && x < this.x2) {
+			inDeterminantSpace = true;
+		}
+		else if (this.x2 == Number.POSITIVE_INFINITY && isFinite(this.x1) && x > this.x1) {
+			inDeterminantSpace = true;
+		}
+		else if (isFinite(this.x2) && isFinite(this.x1) && x > this.x1 && x < this.x2) {
+			inDeterminantSpace = true;
+		}
+		else if (this.x1 == Number.NEGATIVE_INFINITY && this.x2 == Number.POSITIVE_INFINITY) {
+			inDeterminantSpace = true;
+		}
+		else {
+			inDeterminantSpace = false;
+		}
+		return inDeterminantSpace;
+	}
 
 	public constructor(p1: DOMPoint = null, p2: DOMPoint = null) {
 		if (p1 && p2) {
@@ -41,7 +66,7 @@ class Line {
 		var line = new Line();
 		let translatedP2 = new DOMPoint(p2.x - p1.x, p2.y - p1.y);
 		line.k = translatedP2.y / translatedP2.x;
-		line.b = translatedP2.y - translatedP2.x * this.k;
+		line.b = p2.y - p2.x * line.k;
 		return line;
 	}
 
@@ -64,14 +89,14 @@ class Line {
 	}
 
 	public GetIntersection(line: Line): DOMPoint {
-		let x = (line.b - this.b) / (line.k - this.k);
+		let x = (line.b - this.b) / (this.k - line.k);
 
 		if (line.k == this.k) {
 			//lines are parallel
 			return null;
 		}
 
-		if (x > line.x1 && x < line.x2 && x > this.x1 && x < this.x2) {
+		if (this.XInDeterminantSpace(x) && line.XInDeterminantSpace(x)) {
 			return this.GetPoint(x);
 		}
 		return null;
@@ -82,8 +107,19 @@ class Line {
 		return Line.CreateLineByK(point, newK);
 	}
 
-	public GetRotatedLine(angle: number): Line {
-		return new Line();
+	public GetRotatedLine(angle: number, x: number): Line {
+		var center = this.GetPoint(x);
+
+		//var x0Point = this.GetPoint(0);
+
+		//var rotatedPoint = RotatePointAroundAnotherPoint(center, x0Point, angle);
+
+		var k = (Math.tan(angle) + this.k) / (1 - Math.tan(angle) * this.k);
+
+		//new Line(rotatedPoint, center)
+		var rotatedLine = Line.CreateLineByK(center, k);
+
+		return rotatedLine;
 	}
 }
 
@@ -109,7 +145,7 @@ class Ray {
 	}
 
 	private RebuildRay() {
-		this.line.RefreshLine(this.startPoint, this.directionPoint);
+		this.line = this.line.RefreshLine(this.startPoint, this.directionPoint);
 		if (this.startPoint.x > this.directionPoint.x) {
 			this.line.x1 = Number.MIN_VALUE;
 			this.line.x2 = this.startPoint.x;
@@ -124,21 +160,37 @@ class Ray {
 		this.line = new Line();
 		this.startPoint = startPoint;
 		this.directionPoint = directionPoint;
+		this.RebuildRay();
 	}
 
 	public GetIntersecion(element: OpticalElement): DOMPoint {
 		return new Line(element.Point1, element.Point2).GetIntersection(this.line);
+	}
+
+	public get Line(): Line {
+		return this.line;
 	}
 }
 
 class ProcessedRay {
 	public RefractionPoints: DOMPoint[];
 	public Closed: boolean;
+
+	constructor(ray: Ray) {
+		this.Closed = false;
+		this.RefractionPoints = [ray.StartPoint, ray.DirectionPoint];
+	}
 }
 
 class OpticalElement {
 	private point1: DOMPoint;
 	private point2: DOMPoint;
+
+	private RebuildOpticalElement(): void {
+		this.line = this.line.RefreshLine(this.point1, this.point2);
+		this.line.x1 = Math.min(this.point1.x, this.point2.x);
+		this.line.x2 = Math.max(this.point1.x, this.point2.x);
+	}
 
 	protected line: Line;
 
@@ -146,31 +198,47 @@ class OpticalElement {
 		return this.point1;
 	}
 	public get Point2(): DOMPoint {
-		return this.point1;
+		return this.point2;
 	}
 
 	public set Point1(value: DOMPoint) {
 		this.point1 = value;
-		this.line.RefreshLine(this.point1, this.point2);
+		this.RebuildOpticalElement();
 	}
 	public set Point2(value: DOMPoint) {
 		this.point2 = value;
-		this.line.RefreshLine(this.point1, this.point2);
+		this.RebuildOpticalElement();
 	}
 
-	GetProcessedRay(ray: Ray): Ray {
+	public constructor(point1: DOMPoint, point2: DOMPoint) {
+		this.line = new Line();
+		this.point1 = point1;
+		this.point2 = point2;
+		this.RebuildOpticalElement();
+	}
+
+	GetProcessedRay(ray: Ray): Ray[] {
 		return null;
 	}
 }
 
 class Mirror extends OpticalElement {
-	public GetProcessedRay(ray: Ray): Ray {
+	public GetProcessedRay(ray: Ray): Ray[] {
 		let intersection = ray.GetIntersecion(this);
-		let normal = this.line.GetNormal(intersection);
-		return new Ray(new DOMPoint(), new DOMPoint());
+		if (intersection) {
+			let normal = this.line.GetNormal(intersection);
+			let angle = GetAngleBetweenLines(normal, ray.Line);
+			let reflectedLine = normal.GetRotatedLine(-angle, intersection.x);
+			if (reflectedLine.k < 0) {
+				return [new Ray(intersection, normal.GetPoint(0)), new Ray(intersection, reflectedLine.GetPoint(0))];
+			}
+			else {
+				return [new Ray(intersection, normal.GetPoint(screen.width)), new Ray(intersection, reflectedLine.GetPoint(screen.width))];
+			}
+		}
+		return null;
 	}
-	public constructor() {
-		super();
-		this.line = new Line();
+	public constructor(point1: DOMPoint, point2: DOMPoint) {
+		super(point1, point2);
 	}
 }
