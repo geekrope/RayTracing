@@ -274,7 +274,7 @@ var Lens = /** @class */ (function (_super) {
     };
     return Lens;
 }(OpticalElement));
-var step = 5;
+var step = 10;
 function ProcessRay(elements, ray) {
     var processedRay = new ProcessedRay();
     processedRay.RefractionPoints = [ray.StartPoint, ray.DirectionPoint];
@@ -291,12 +291,13 @@ function ProcessRay(elements, ray) {
                 var procRay = elements[index].GetProcessedRay(newRay);
                 if (procRay) {
                     newRay = procRay;
-                    processedRay.RefractionPoints.push(newRay.StartPoint, newRay.DirectionPoint);
+                    processedRay.RefractionPoints.push(newRay.StartPoint);
                 }
             }
         }
         segmentStartPoint = segment.point2;
     }
+    processedRay.RefractionPoints.push(newRay.DirectionPoint);
     return processedRay;
 }
 //# sourceMappingURL=maths.js.map

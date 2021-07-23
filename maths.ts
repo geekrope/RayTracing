@@ -283,7 +283,7 @@ class Lens extends OpticalElement {
 	}
 }
 
-const step = 5;
+const step = 10;
 
 function ProcessRay(elements: OpticalElement[], ray: Ray): ProcessedRay {
 	var processedRay = new ProcessedRay();
@@ -306,13 +306,15 @@ function ProcessRay(elements: OpticalElement[], ray: Ray): ProcessedRay {
 				var procRay = elements[index].GetProcessedRay(newRay);
 				if (procRay) {
 					newRay = procRay;
-					processedRay.RefractionPoints.push(newRay.StartPoint, newRay.DirectionPoint);
+					processedRay.RefractionPoints.push(newRay.StartPoint);
 				}
 			}
 		}
 
 		segmentStartPoint = segment.point2;
 	}
+
+	processedRay.RefractionPoints.push(newRay.DirectionPoint);
 
 	return processedRay;
 }
