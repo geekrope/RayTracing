@@ -34,17 +34,19 @@ function DrawProcessedRay(ray: ProcessedRay | Ray, cnvsId: string) {
 
 		ctx.beginPath();
 
-		if (ray instanceof ProcessedRay) {
+		if (ray instanceof ProcessedRay && ray.RefractionPoints.length > 0) {
 			ctx.moveTo(ray.RefractionPoints[0].x, ray.RefractionPoints[0].y);
 
 			let length = ray.Closed ? ray.RefractionPoints.length : ray.RefractionPoints.length - 1;
-			for (let index = 1; index < length; index++) {
-				ctx.lineTo(ray.RefractionPoints[index].x, ray.RefractionPoints[index].y);
+			if (length != 0) {
+				for (let index = 0; index < length; index++) {
+					ctx.lineTo(ray.RefractionPoints[index].x, ray.RefractionPoints[index].y);
+				}
 			}
 
 			if (!ray.Closed) {
-				let prevPoint = ray.RefractionPoints[ray.RefractionPoints.length - 1];
-				let lastPoint = ray.RefractionPoints[ray.RefractionPoints.length];
+				let prevPoint = ray.RefractionPoints[ray.RefractionPoints.length - 2];
+				let lastPoint = ray.RefractionPoints[ray.RefractionPoints.length - 1];
 				let line = new Line(prevPoint, lastPoint);
 				if (prevPoint.x < lastPoint.x) {
 					var p = line.GetPoint(screen.width);
@@ -86,14 +88,15 @@ interface AdornerMoved {
 	(): void;
 }
 
-class Adorner {
-	private center: DOMPoint;
+class Adorner {	
 	private cnvsId: string;
 	private insideAdorner: boolean = false;
 	private clickPoint: DOMPoint;
 
+	public Center: DOMPoint;
+
 	private MouseDown(ev: MouseEvent) {
-		if (GetDistance(new DOMPoint(ev.pageX, ev.pageY), this.center) < Radius) {
+		if (GetDistance(new DOMPoint(ev.pageX, ev.pageY), this.Center) < Radius) {
 			this.insideAdorner = true;
 		}
 		else {
@@ -104,8 +107,8 @@ class Adorner {
 
 	private MouseMove(ev: MouseEvent) {
 		if (this.insideAdorner) {
-			this.center.x += ev.pageX - this.clickPoint.x;
-			this.center.y += ev.pageY - this.clickPoint.y;
+			this.Center.x += ev.pageX - this.clickPoint.x;
+			this.Center.y += ev.pageY - this.clickPoint.y;
 		}
 		this.clickPoint = new DOMPoint(ev.pageX, ev.pageY);
 		if (this.AdornerMoved != null) {
@@ -117,12 +120,8 @@ class Adorner {
 		this.insideAdorner = false;
 	}
 
-	public get Center(): DOMPoint {
-		return this.center;
-	}
-
 	public constructor(center: DOMPoint, cnvsId: string) {
-		this.center = center;
+		this.Center = center;
 		this.cnvsId = cnvsId;
 		this.clickPoint = new DOMPoint();
 
@@ -144,7 +143,7 @@ class Adorner {
 			ctx.fillStyle = AdornerFillColor;
 
 			ctx.beginPath();
-			ctx.arc(this.center.x, this.center.y, Radius, 0, Math.PI * 2);
+			ctx.arc(this.Center.x, this.Center.y, Radius, 0, Math.PI * 2);
 			ctx.closePath();
 
 			ctx.fill();
@@ -218,6 +217,22 @@ class VisualMirror extends ChangeableObject {
 		this.mirror.Point2 = this.adorners[1].Center;
 	}
 
+	public get Point1(): DOMPoint {
+		return this.mirror.Point1;
+	}
+	public get Point2(): DOMPoint {
+		return this.mirror.Point2;
+	}
+
+	public set Point1(value: DOMPoint) {
+		this.mirror.Point1 = value;
+		this.adorners[0].Center = value;
+	}
+	public set Point2(value: DOMPoint) {
+		this.mirror.Point2 = value;
+		this.adorners[1].Center = value;
+	}
+
 	public get Mirror(): Mirror {
 		return this.mirror;
 	}
@@ -247,6 +262,7 @@ class VisualMirror extends ChangeableObject {
 
 var ray: VisualRay = null;
 var mirror: VisualMirror = null;
+var mirror2: VisualMirror = null;
 
 function Draw() {
 	var element = document.getElementById("playground");
@@ -256,18 +272,43 @@ function Draw() {
 	}
 	ray.Draw();
 	mirror.Draw();
+	mirror2.Draw();
 
-	var reflection = mirror.Mirror.GetProcessedRay(ray.Ray);
+	//drawSegment("playground", ray.Ray);
+
+	var reflection = ProcessRay([mirror.Mirror, mirror2.Mirror], ray.Ray);
 	if (reflection) {
-		DrawProcessedRay(reflection[0], "playground");
-		DrawProcessedRay(reflection[1], "playground");
-	}	
+		DrawProcessedRay(reflection, "playground");
+	}
 
 	requestAnimationFrame(Draw);
+}
+
+function drawSegment(cnvsId: string, ray: Ray) {
+	var segment = GetRaySegment(ray, ray.StartPoint, 100);
+
+	var element = document.getElementById(cnvsId);
+
+	let ctx = (<HTMLCanvasElement>(element)).getContext("2d");
+
+	ctx.strokeStyle = mirrorColor;
+	ctx.lineWidth = mirrorThickness;
+
+	ctx.beginPath();
+
+	ctx.moveTo(segment.point1.x, segment.point1.y);
+	ctx.lineTo(segment.point2.x, segment.point2.y);
+
+	ctx.closePath();
+
+	ctx.stroke();
 }
 
 this.onload = () => {
 	ray = new VisualRay("playground");
 	mirror = new VisualMirror("playground");
+	mirror2 = new VisualMirror("playground");
+	mirror2.Point1 = new DOMPoint(300, 100);
+	mirror2.Point2 = new DOMPoint(400, 200);
 	Draw();
 }

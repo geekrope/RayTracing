@@ -20,8 +20,20 @@ function GetAngleBetweenLines(line1, line2) {
     var tan = (line2.k - line1.k) / (1 + line1.k * line2.k);
     return Math.atan(tan);
 }
+function GetRaySegment(ray, point, dist) {
+    var xAbs = Math.sqrt(dist * dist / (ray.Line.k * ray.Line.k + 1));
+    if (ray.StartPoint.x > ray.DirectionPoint.x) {
+        xAbs = -xAbs;
+    }
+    var y = xAbs * ray.Line.k;
+    return { point1: point, point2: new DOMPoint(xAbs + point.x, y + point.y) };
+}
 function DegToRad(angle) {
     return angle / Math.PI * 180;
+}
+function SegmentOnTheScreen(segment) {
+    return Math.min(segment.point1.y, segment.point2.y) >= 0 && Math.min(segment.point1.x, segment.point2.x) >= 0 &&
+        Math.max(segment.point1.y, segment.point2.y) <= screen.height && Math.max(segment.point1.x, segment.point2.x) <= screen.width;
 }
 var Line = /** @class */ (function () {
     function Line(p1, p2) {
@@ -166,9 +178,19 @@ var Ray = /** @class */ (function () {
 }());
 var ProcessedRay = /** @class */ (function () {
     function ProcessedRay(ray) {
-        this.Closed = false;
-        this.RefractionPoints = [ray.StartPoint, ray.DirectionPoint];
+        if (ray === void 0) { ray = null; }
+        this.RefractionPoints = [];
+        if (ray) {
+            this.Closed = false;
+            this.RefractionPoints = [ray.StartPoint, ray.DirectionPoint];
+        }
     }
+    ProcessedRay.Plus = function (ray, ray2) {
+        var newRay = new ProcessedRay();
+        newRay.RefractionPoints = ray.RefractionPoints.concat(ray2.RefractionPoints);
+        newRay.Closed = ray.Closed || ray2.Closed;
+        return newRay;
+    };
     return ProcessedRay;
 }());
 var OpticalElement = /** @class */ (function () {
@@ -229,14 +251,52 @@ var Mirror = /** @class */ (function (_super) {
             var angle = GetAngleBetweenLines(normal, ray.Line);
             var reflectedLine = normal.GetRotatedLine(-angle, intersection.x);
             if (reflectedLine.k < 0) {
-                return [new Ray(intersection, normal.GetPoint(0)), new Ray(intersection, reflectedLine.GetPoint(0))];
+                return new Ray(intersection, reflectedLine.GetPoint(0));
             }
             else {
-                return [new Ray(intersection, normal.GetPoint(screen.width)), new Ray(intersection, reflectedLine.GetPoint(screen.width))];
+                return new Ray(intersection, reflectedLine.GetPoint(screen.width));
             }
         }
         return null;
     };
     return Mirror;
 }(OpticalElement));
+var Lens = /** @class */ (function (_super) {
+    __extends(Lens, _super);
+    function Lens(point1, point2) {
+        return _super.call(this, point1, point2) || this;
+    }
+    Lens.prototype.GetProcessedRay = function (ray) {
+        var intersection = ray.GetIntersecion(this);
+        if (intersection) {
+        }
+        return null;
+    };
+    return Lens;
+}(OpticalElement));
+var step = 5;
+function ProcessRay(elements, ray) {
+    var processedRay = new ProcessedRay();
+    processedRay.RefractionPoints = [ray.StartPoint, ray.DirectionPoint];
+    var newRay = ray;
+    var segmentStartPoint = ray.StartPoint;
+    var segment = GetRaySegment(newRay, segmentStartPoint, step);
+    for (; SegmentOnTheScreen(segment);) {
+        segment = GetRaySegment(newRay, segmentStartPoint, step);
+        var line = new Line(segment.point1, segment.point2);
+        line.x1 = Math.min(segment.point1.x, segment.point2.x);
+        line.x2 = Math.max(segment.point1.x, segment.point2.x);
+        for (var index = 0; index < elements.length; index++) {
+            if (elements[index].Line.GetIntersection(line)) {
+                var procRay = elements[index].GetProcessedRay(newRay);
+                if (procRay) {
+                    newRay = procRay;
+                    processedRay.RefractionPoints.push(newRay.StartPoint, newRay.DirectionPoint);
+                }
+            }
+        }
+        segmentStartPoint = segment.point2;
+    }
+    return processedRay;
+}
 //# sourceMappingURL=maths.js.map

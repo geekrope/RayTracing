@@ -38,15 +38,17 @@ function DrawProcessedRay(ray, cnvsId) {
         ctx.strokeStyle = rayColor;
         ctx.lineWidth = rayThickness;
         ctx.beginPath();
-        if (ray instanceof ProcessedRay) {
+        if (ray instanceof ProcessedRay && ray.RefractionPoints.length > 0) {
             ctx.moveTo(ray.RefractionPoints[0].x, ray.RefractionPoints[0].y);
             var length_1 = ray.Closed ? ray.RefractionPoints.length : ray.RefractionPoints.length - 1;
-            for (var index = 1; index < length_1; index++) {
-                ctx.lineTo(ray.RefractionPoints[index].x, ray.RefractionPoints[index].y);
+            if (length_1 != 0) {
+                for (var index = 0; index < length_1; index++) {
+                    ctx.lineTo(ray.RefractionPoints[index].x, ray.RefractionPoints[index].y);
+                }
             }
             if (!ray.Closed) {
-                var prevPoint = ray.RefractionPoints[ray.RefractionPoints.length - 1];
-                var lastPoint = ray.RefractionPoints[ray.RefractionPoints.length];
+                var prevPoint = ray.RefractionPoints[ray.RefractionPoints.length - 2];
+                var lastPoint = ray.RefractionPoints[ray.RefractionPoints.length - 1];
                 var line = new Line(prevPoint, lastPoint);
                 if (prevPoint.x < lastPoint.x) {
                     var p = line.GetPoint(screen.width);
@@ -81,7 +83,7 @@ var AdornerThickness = 2;
 var Adorner = /** @class */ (function () {
     function Adorner(center, cnvsId) {
         this.insideAdorner = false;
-        this.center = center;
+        this.Center = center;
         this.cnvsId = cnvsId;
         this.clickPoint = new DOMPoint();
         var element = document.getElementById(this.cnvsId);
@@ -92,7 +94,7 @@ var Adorner = /** @class */ (function () {
         }
     }
     Adorner.prototype.MouseDown = function (ev) {
-        if (GetDistance(new DOMPoint(ev.pageX, ev.pageY), this.center) < Radius) {
+        if (GetDistance(new DOMPoint(ev.pageX, ev.pageY), this.Center) < Radius) {
             this.insideAdorner = true;
         }
         else {
@@ -102,8 +104,8 @@ var Adorner = /** @class */ (function () {
     };
     Adorner.prototype.MouseMove = function (ev) {
         if (this.insideAdorner) {
-            this.center.x += ev.pageX - this.clickPoint.x;
-            this.center.y += ev.pageY - this.clickPoint.y;
+            this.Center.x += ev.pageX - this.clickPoint.x;
+            this.Center.y += ev.pageY - this.clickPoint.y;
         }
         this.clickPoint = new DOMPoint(ev.pageX, ev.pageY);
         if (this.AdornerMoved != null) {
@@ -113,13 +115,6 @@ var Adorner = /** @class */ (function () {
     Adorner.prototype.MouseUp = function () {
         this.insideAdorner = false;
     };
-    Object.defineProperty(Adorner.prototype, "Center", {
-        get: function () {
-            return this.center;
-        },
-        enumerable: false,
-        configurable: true
-    });
     Adorner.prototype.Draw = function () {
         var element = document.getElementById(this.cnvsId);
         if (element) {
@@ -128,7 +123,7 @@ var Adorner = /** @class */ (function () {
             ctx.lineWidth = AdornerThickness;
             ctx.fillStyle = AdornerFillColor;
             ctx.beginPath();
-            ctx.arc(this.center.x, this.center.y, Radius, 0, Math.PI * 2);
+            ctx.arc(this.Center.x, this.Center.y, Radius, 0, Math.PI * 2);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
@@ -200,6 +195,28 @@ var VisualMirror = /** @class */ (function (_super) {
         this.mirror.Point1 = this.adorners[0].Center;
         this.mirror.Point2 = this.adorners[1].Center;
     };
+    Object.defineProperty(VisualMirror.prototype, "Point1", {
+        get: function () {
+            return this.mirror.Point1;
+        },
+        set: function (value) {
+            this.mirror.Point1 = value;
+            this.adorners[0].Center = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(VisualMirror.prototype, "Point2", {
+        get: function () {
+            return this.mirror.Point2;
+        },
+        set: function (value) {
+            this.mirror.Point2 = value;
+            this.adorners[1].Center = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
     Object.defineProperty(VisualMirror.prototype, "Mirror", {
         get: function () {
             return this.mirror;
@@ -217,6 +234,7 @@ var VisualMirror = /** @class */ (function (_super) {
 }(ChangeableObject));
 var ray = null;
 var mirror = null;
+var mirror2 = null;
 function Draw() {
     var element = document.getElementById("playground");
     if (element) {
@@ -225,16 +243,32 @@ function Draw() {
     }
     ray.Draw();
     mirror.Draw();
-    var reflection = mirror.Mirror.GetProcessedRay(ray.Ray);
+    mirror2.Draw();
+    //drawSegment("playground", ray.Ray);
+    var reflection = ProcessRay([mirror.Mirror, mirror2.Mirror], ray.Ray);
     if (reflection) {
-        DrawProcessedRay(reflection[0], "playground");
-        DrawProcessedRay(reflection[1], "playground");
+        DrawProcessedRay(reflection, "playground");
     }
     requestAnimationFrame(Draw);
+}
+function drawSegment(cnvsId, ray) {
+    var segment = GetRaySegment(ray, ray.StartPoint, 100);
+    var element = document.getElementById(cnvsId);
+    var ctx = (element).getContext("2d");
+    ctx.strokeStyle = mirrorColor;
+    ctx.lineWidth = mirrorThickness;
+    ctx.beginPath();
+    ctx.moveTo(segment.point1.x, segment.point1.y);
+    ctx.lineTo(segment.point2.x, segment.point2.y);
+    ctx.closePath();
+    ctx.stroke();
 }
 this.onload = function () {
     ray = new VisualRay("playground");
     mirror = new VisualMirror("playground");
+    mirror2 = new VisualMirror("playground");
+    mirror2.Point1 = new DOMPoint(300, 100);
+    mirror2.Point2 = new DOMPoint(400, 200);
     Draw();
 };
 //# sourceMappingURL=draw.js.map
