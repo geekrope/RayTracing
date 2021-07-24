@@ -14,10 +14,11 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-var mirrorColor = "#303030";
+var mirrorColor = "#c0c0c0";
 var rayColor = "#ffff30";
 var mirrorThickness = 5;
 var rayThickness = 2;
+var rayShadowBlur = 10;
 function DrawMirror(mirror, cnvsId) {
     var element = document.getElementById(cnvsId);
     if (element) {
@@ -36,6 +37,8 @@ function DrawProcessedRay(ray, cnvsId) {
         var ctx = (element).getContext("2d");
         ctx.strokeStyle = rayColor;
         ctx.lineWidth = rayThickness;
+        ctx.shadowColor = rayColor;
+        ctx.shadowBlur = rayShadowBlur;
         ctx.beginPath();
         if (ray instanceof ProcessedRay && ray.RefractionPoints.length > 0) {
             ctx.moveTo(ray.RefractionPoints[0].x, ray.RefractionPoints[0].y);
@@ -72,9 +75,11 @@ function DrawProcessedRay(ray, cnvsId) {
             }
         }
         ctx.stroke();
+        ctx.shadowColor = "";
+        ctx.shadowBlur = 0;
     }
 }
-var Radius = 10;
+var Radius = 5;
 var AdornerColor = "#1E90FF";
 var AdornerFillColor = "#FFFFFF";
 var AdornerThickness = 2;
@@ -140,6 +145,13 @@ var Adorner = /** @class */ (function () {
 var ChangeableObject = /** @class */ (function () {
     function ChangeableObject() {
     }
+    Object.defineProperty(ChangeableObject.prototype, "Object", {
+        get: function () {
+            return this.object;
+        },
+        enumerable: false,
+        configurable: true
+    });
     ChangeableObject.prototype.Draw = function () {
     };
     return ChangeableObject;
@@ -153,6 +165,7 @@ var VisualRay = /** @class */ (function (_super) {
         var secondAdorner = new Adorner(new DOMPoint(100, 100), _this.cnvsId);
         _this.adorners = [firstAdorner, secondAdorner];
         _this.ray = new Ray(firstAdorner.Center, secondAdorner.Center);
+        _this.object = _this.ray;
         firstAdorner.AdornerMoved = _this.UpdateRay.bind(_this);
         secondAdorner.AdornerMoved = _this.UpdateRay.bind(_this);
         return _this;
@@ -185,8 +198,10 @@ var VisualMirror = /** @class */ (function (_super) {
         var secondAdorner = new Adorner(new DOMPoint(150, 100), _this.cnvsId);
         _this.adorners = [firstAdorner, secondAdorner];
         _this.mirror = new Mirror(firstAdorner.Center, secondAdorner.Center);
+        _this.object = _this.mirror;
         firstAdorner.AdornerMoved = _this.UpdateMirror.bind(_this);
         secondAdorner.AdornerMoved = _this.UpdateMirror.bind(_this);
+        _this.UpdateMirror();
         return _this;
     }
     VisualMirror.prototype.UpdateMirror = function () {
@@ -230,43 +245,88 @@ var VisualMirror = /** @class */ (function (_super) {
     };
     return VisualMirror;
 }(ChangeableObject));
-var ray = null;
-var mirror = null;
-var mirror2 = null;
-function Draw() {
-    var element = document.getElementById("playground");
+var Scene = /** @class */ (function () {
+    function Scene(cnvsId) {
+        this.cnvsId = cnvsId;
+        this.opticalElements = [];
+        this.rays = [];
+    }
+    Object.defineProperty(Scene.prototype, "Rays", {
+        get: function () {
+            return this.rays;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Scene.prototype, "CnvsId", {
+        get: function () {
+            return this.cnvsId;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Scene.prototype, "OpticalElements", {
+        get: function () {
+            return this.opticalElements;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Scene.prototype.AddRay = function (ev) {
+        this.rays.push(new VisualRay(this.cnvsId));
+    };
+    Scene.prototype.AddMirror = function (ev) {
+        this.opticalElements.push(new VisualMirror(this.cnvsId));
+    };
+    Scene.prototype.BindClickEvent = function (id, action) {
+        var element = document.getElementById(id);
+        if (element) {
+            switch (action) {
+                case "addray":
+                    element.addEventListener("click", this.AddRay.bind(this));
+                    break;
+                case "addmirror":
+                    element.addEventListener("click", this.AddMirror.bind(this));
+                    break;
+                case "addlens":
+                    element.addEventListener("click", this.AddRay.bind(this));
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
+    return Scene;
+}());
+var scene = new Scene("playground");
+function Draw(scene) {
+    var element = document.getElementById(scene.CnvsId);
     if (element) {
         var ctx = (element).getContext("2d");
-        ctx.clearRect(0, 0, 2560, 1440);
+        var rect = element.getBoundingClientRect();
+        ctx.clearRect(0, 0, rect.width, rect.height);
+        for (var rayInd = 0; rayInd < scene.Rays.length; rayInd++) {
+            var opticalElements = [];
+            var value = scene.Rays[rayInd];
+            for (var opticalElementInd = 0; opticalElementInd < scene.OpticalElements.length; opticalElementInd++) {
+                var value_1 = scene.OpticalElements[opticalElementInd];
+                if (!(value_1.Object instanceof Ray) && value_1.Object) {
+                    opticalElements.push(value_1.Object);
+                    value_1.Draw();
+                }
+            }
+            var processedRay = ProcessRay(opticalElements, value.Ray);
+            if (processedRay) {
+                DrawProcessedRay(processedRay, scene.CnvsId);
+            }
+            value.Draw();
+        }
     }
-    ray.Draw();
-    mirror.Draw();
-    mirror2.Draw();
-    //drawSegment("playground", ray.Ray);
-    var reflection = ProcessRay([mirror.Mirror, mirror2.Mirror], ray.Ray);
-    if (reflection) {
-        DrawProcessedRay(reflection, "playground");
-    }
-    requestAnimationFrame(Draw);
-}
-function drawSegment(cnvsId, ray) {
-    var segment = GetRaySegment(ray, ray.StartPoint, 100);
-    var element = document.getElementById(cnvsId);
-    var ctx = (element).getContext("2d");
-    ctx.strokeStyle = mirrorColor;
-    ctx.lineWidth = mirrorThickness;
-    ctx.beginPath();
-    ctx.moveTo(segment.point1.x, segment.point1.y);
-    ctx.lineTo(segment.point2.x, segment.point2.y);
-    ctx.closePath();
-    ctx.stroke();
+    requestAnimationFrame(function () { Draw(scene); });
 }
 this.onload = function () {
-    ray = new VisualRay("playground");
-    mirror = new VisualMirror("playground");
-    mirror2 = new VisualMirror("playground");
-    mirror2.Point1 = new DOMPoint(300, 100);
-    mirror2.Point2 = new DOMPoint(400, 200);
-    Draw();
+    Draw(scene);
+    scene.BindClickEvent("addRay", "addray");
+    scene.BindClickEvent("addMirror", "addmirror");
 };
 //# sourceMappingURL=draw.js.map

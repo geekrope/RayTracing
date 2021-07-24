@@ -2,3 +2,34 @@
     margin: 0px;
     padding: 0px;
 }
+
+.button {
+    width: 70px;
+    height: 70px;
+    object-fit: contain;
+    margin: 10px;
+    background: #f0f0f0;
+    border-radius: 10px;
+    padding: 10px;
+    border: solid;
+    border-width: 1px;
+    border-color: #7a7a7a;
+}
+
+    .button:hover {
+        background: #e6e6e6;
+        border-color: #00a9ff;
+    }
+
+.buttons {
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: start;
+    position: absolute;
+    right: 0px;
+}
+
+canvas {
+    position: absolute;
+}

@@ -1,12 +1,13 @@
 ﻿/// <reference path="maths.ts"/>
 
-const mirrorColor = "#303030";
+const mirrorColor = "#c0c0c0";
 const rayColor = "#ffff30";
 const mirrorThickness = 5;
 const rayThickness = 2;
+const rayShadowBlur = 10;
 
 function DrawMirror(mirror: Mirror, cnvsId: string) {
-	var element = document.getElementById(cnvsId);
+	let element = document.getElementById(cnvsId);
 	if (element) {
 		let ctx = (<HTMLCanvasElement>(element)).getContext("2d");
 
@@ -16,19 +17,22 @@ function DrawMirror(mirror: Mirror, cnvsId: string) {
 		ctx.beginPath();
 
 		ctx.moveTo(mirror.Point1.x, mirror.Point1.y);
-		ctx.lineTo(mirror.Point2.x, mirror.Point2.y);		
+		ctx.lineTo(mirror.Point2.x, mirror.Point2.y);
 
 		ctx.stroke();
 	}
 }
 
 function DrawProcessedRay(ray: ProcessedRay | Ray, cnvsId: string) {
-	var element = document.getElementById(cnvsId);
+	let element = document.getElementById(cnvsId);
 	if (element) {
 		let ctx = (<HTMLCanvasElement>(element)).getContext("2d");
 
 		ctx.strokeStyle = rayColor;
 		ctx.lineWidth = rayThickness;
+
+		ctx.shadowColor = rayColor;
+		ctx.shadowBlur = rayShadowBlur;
 
 		ctx.beginPath();
 
@@ -47,11 +51,11 @@ function DrawProcessedRay(ray: ProcessedRay | Ray, cnvsId: string) {
 				let lastPoint = ray.RefractionPoints[ray.RefractionPoints.length - 1];
 				let line = new Line(prevPoint, lastPoint);
 				if (prevPoint.x < lastPoint.x) {
-					var p = line.GetPointByX(screen.width);
+					let p = line.GetPointByX(screen.width);
 					ctx.lineTo(p.x, p.y);
 				}
 				else {
-					var p = line.GetPointByX(0);
+					let p = line.GetPointByX(0);
 					ctx.lineTo(p.x, p.y);
 				}
 			}
@@ -62,20 +66,23 @@ function DrawProcessedRay(ray: ProcessedRay | Ray, cnvsId: string) {
 			let line = new Line(ray.StartPoint, ray.DirectionPoint);
 
 			if (ray.StartPoint.x < ray.DirectionPoint.x) {
-				var p = line.GetPointByX(screen.width);
+				let p = line.GetPointByX(screen.width);
 				ctx.lineTo(p.x, p.y);
 			}
 			else {
-				var p = line.GetPointByX(0);
+				let p = line.GetPointByX(0);
 				ctx.lineTo(p.x, p.y);
 			}
-		}		
+		}
 
 		ctx.stroke();
+
+		ctx.shadowColor = "";
+		ctx.shadowBlur = 0;
 	}
 }
 
-const Radius = 10;
+const Radius = 5;
 const AdornerColor = "#1E90FF";
 const AdornerFillColor = "#FFFFFF";
 const AdornerThickness = 2;
@@ -84,7 +91,7 @@ interface AdornerMoved {
 	(): void;
 }
 
-class Adorner {	
+class Adorner {
 	private cnvsId: string;
 	private insideAdorner: boolean = false;
 	private clickPoint: DOMPoint;
@@ -121,7 +128,7 @@ class Adorner {
 		this.cnvsId = cnvsId;
 		this.clickPoint = new DOMPoint();
 
-		var element = document.getElementById(this.cnvsId);
+		let element = document.getElementById(this.cnvsId);
 		if (element) {
 			element.addEventListener("mousedown", this.MouseDown.bind(this));
 			element.addEventListener("mousemove", this.MouseMove.bind(this));
@@ -130,7 +137,7 @@ class Adorner {
 	}
 
 	public Draw(): void {
-		var element = document.getElementById(this.cnvsId);
+		let element = document.getElementById(this.cnvsId);
 		if (element) {
 			let ctx = (<HTMLCanvasElement>(element)).getContext("2d");
 
@@ -148,7 +155,7 @@ class Adorner {
 	}
 
 	public Dispose() {
-		var element = document.getElementById(this.cnvsId);
+		let element = document.getElementById(this.cnvsId);
 		if (element) {
 			element.removeEventListener("mousedown", this.MouseDown);
 			element.removeEventListener("mousemove", this.MouseMove);
@@ -162,6 +169,10 @@ class Adorner {
 class ChangeableObject {
 	protected adorners: Adorner[];
 	protected object: OpticalElement | Ray;
+
+	public get Object(): OpticalElement | Ray {
+		return this.object;
+	}
 
 	public Draw(): void {
 
@@ -185,12 +196,13 @@ class VisualRay extends ChangeableObject {
 		super();
 		this.cnvsId = cnvsId;
 
-		var firstAdorner = new Adorner(new DOMPoint(0, 0), this.cnvsId);
-		var secondAdorner = new Adorner(new DOMPoint(100, 100), this.cnvsId);
+		let firstAdorner = new Adorner(new DOMPoint(0, 0), this.cnvsId);
+		let secondAdorner = new Adorner(new DOMPoint(100, 100), this.cnvsId);
 
 		this.adorners = [firstAdorner, secondAdorner];
 
 		this.ray = new Ray(firstAdorner.Center, secondAdorner.Center);
+		this.object = this.ray;
 
 		firstAdorner.AdornerMoved = this.UpdateRay.bind(this);
 		secondAdorner.AdornerMoved = this.UpdateRay.bind(this);
@@ -237,15 +249,18 @@ class VisualMirror extends ChangeableObject {
 		super();
 		this.cnvsId = cnvsId;
 
-		var firstAdorner = new Adorner(new DOMPoint(200, 200), this.cnvsId);
-		var secondAdorner = new Adorner(new DOMPoint(150, 100), this.cnvsId);
+		let firstAdorner = new Adorner(new DOMPoint(200, 200), this.cnvsId);
+		let secondAdorner = new Adorner(new DOMPoint(150, 100), this.cnvsId);
 
 		this.adorners = [firstAdorner, secondAdorner];
 
 		this.mirror = new Mirror(firstAdorner.Center, secondAdorner.Center);
+		this.object = this.mirror;
 
 		firstAdorner.AdornerMoved = this.UpdateMirror.bind(this);
 		secondAdorner.AdornerMoved = this.UpdateMirror.bind(this);
+
+		this.UpdateMirror();
 	}
 
 	public Draw(): void {
@@ -256,55 +271,92 @@ class VisualMirror extends ChangeableObject {
 	}
 }
 
-var ray: VisualRay = null;
-var mirror: VisualMirror = null;
-var mirror2: VisualMirror = null;
+class Scene {
+	private cnvsId: string;
 
-function Draw() {
-	var element = document.getElementById("playground");
-	if (element) {
-		let ctx = (<HTMLCanvasElement>(element)).getContext("2d");
-		ctx.clearRect(0, 0, 2560, 1440);
-	}
-	ray.Draw();
-	mirror.Draw();
-	mirror2.Draw();
+	private opticalElements: ChangeableObject[];
+	private rays: VisualRay[];
 
-	//drawSegment("playground", ray.Ray);
-
-	var reflection = ProcessRay([mirror.Mirror, mirror2.Mirror], ray.Ray);
-	if (reflection) {
-		DrawProcessedRay(reflection, "playground");
+	public get Rays(): VisualRay[] {
+		return this.rays;
 	}
 
-	requestAnimationFrame(Draw);
+	public get CnvsId(): string {
+		return this.cnvsId;
+	}
+
+	public get OpticalElements(): ChangeableObject[] {
+		return this.opticalElements;
+	}
+
+	constructor(cnvsId: string) {
+		this.cnvsId = cnvsId;
+		this.opticalElements = [];
+		this.rays = [];
+	}
+
+	public AddRay(ev: MouseEvent): void {
+		this.rays.push(new VisualRay(this.cnvsId));
+	}
+
+	public AddMirror(ev: MouseEvent): void {
+		this.opticalElements.push(new VisualMirror(this.cnvsId));
+	}
+
+	public BindClickEvent(id: string, action: action): void {
+		var element = document.getElementById(id);
+		if (element) {
+			switch (action) {
+				case "addray":
+					element.addEventListener("click", this.AddRay.bind(this));
+					break;
+				case "addmirror":
+					element.addEventListener("click", this.AddMirror.bind(this));
+					break;
+				case "addlens":
+					element.addEventListener("click", this.AddRay.bind(this));
+					break;
+				default:
+					break;
+			}
+		}
+	}
 }
 
-function drawSegment(cnvsId: string, ray: Ray) {
-	var segment = GetRaySegment(ray, ray.StartPoint, 100);
+type action = "addray" | "addmirror" | "addlens";
 
-	var element = document.getElementById(cnvsId);
+var scene = new Scene("playground");
 
-	let ctx = (<HTMLCanvasElement>(element)).getContext("2d");
+function Draw(scene: Scene): void {
+	let element = document.getElementById(scene.CnvsId);
+	if (element) {
+		let ctx = (<HTMLCanvasElement>(element)).getContext("2d");
+		let rect = element.getBoundingClientRect();
+		ctx.clearRect(0, 0, rect.width, rect.height);
 
-	ctx.strokeStyle = mirrorColor;
-	ctx.lineWidth = mirrorThickness;
+		for (let rayInd = 0; rayInd < scene.Rays.length; rayInd++) {
+			let opticalElements: OpticalElement[] = [];
+			let value = scene.Rays[rayInd];
 
-	ctx.beginPath();
-
-	ctx.moveTo(segment.point1.x, segment.point1.y);
-	ctx.lineTo(segment.point2.x, segment.point2.y);
-
-	ctx.closePath();
-
-	ctx.stroke();
+			for (let opticalElementInd = 0; opticalElementInd < scene.OpticalElements.length; opticalElementInd++) {
+				let value = scene.OpticalElements[opticalElementInd];
+				if (!(value.Object instanceof Ray) && value.Object) {
+					opticalElements.push(value.Object);
+					value.Draw();
+				}
+			}
+			let processedRay = ProcessRay(opticalElements, value.Ray);
+			if (processedRay) {
+				DrawProcessedRay(processedRay, scene.CnvsId);
+			}
+			value.Draw();
+		}
+	}
+	requestAnimationFrame(() => { Draw(scene) });
 }
 
 this.onload = () => {
-	ray = new VisualRay("playground");
-	mirror = new VisualMirror("playground");
-	mirror2 = new VisualMirror("playground");
-	mirror2.Point1 = new DOMPoint(300, 100);
-	mirror2.Point2 = new DOMPoint(400, 200);
-	Draw();
+	Draw(scene);
+	scene.BindClickEvent("addRay", "addray");
+	scene.BindClickEvent("addMirror", "addmirror");
 }

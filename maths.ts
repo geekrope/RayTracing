@@ -3,19 +3,19 @@
 }
 
 function GetAngleBetweenLines(line1: Line, line2: Line): number {
-	var tan = (line2.k - line1.k) / (1 + line1.k * line2.k);
+	let tan = (line2.k - line1.k) / (1 + line1.k * line2.k);
 
 	return Math.atan(tan);
 }
 
 function GetRaySegment(ray: Ray, point: DOMPoint, dist: number): { point1: DOMPoint, point2: DOMPoint } {
-	var xAbs = Math.sqrt(dist * dist / (ray.Line.k * ray.Line.k + 1));
+	let xAbs = Math.sqrt(dist * dist / (ray.Line.k * ray.Line.k + 1));
 
 	if (ray.StartPoint.x > ray.DirectionPoint.x) {
 		xAbs = -xAbs;
 	}
 
-	var y = xAbs * ray.Line.k;
+	let y = xAbs * ray.Line.k;
 
 	return { point1: point, point2: new DOMPoint(xAbs + point.x, y + point.y) };
 }
@@ -29,41 +29,15 @@ function SegmentOnTheScreen(segment: { point1: DOMPoint, point2: DOMPoint }): bo
 		Math.max(segment.point1.y, segment.point2.y) <= screen.height && Math.max(segment.point1.x, segment.point2.x) <= screen.width;
 }
 
-//to remove
 function RotatePoint(point: DOMPoint, center: DOMPoint, angle: number): DOMPoint {
-	var translatedPoint = new DOMPoint(point.x - center.x, point.y - center.y, point.z, point.w);
-	var distance = GetDistance(new DOMPoint(0, 0), translatedPoint);
-	var addedAngle = Math.atan2(translatedPoint.y, translatedPoint.x);
+	let translatedPoint = new DOMPoint(point.x - center.x, point.y - center.y, point.z, point.w);
+	let distance = GetDistance(new DOMPoint(0, 0), translatedPoint);
+	let addedAngle = Math.atan2(translatedPoint.y, translatedPoint.x);
 	translatedPoint.x = distance * Math.cos(addedAngle + angle);
 	translatedPoint.y = distance * Math.sin(addedAngle + angle);
 	translatedPoint.x += center.x;
 	translatedPoint.y += center.y;
 	return translatedPoint;
-}
-
-function rotate(cx: number, cy: number, x: number, y: number, angle: number): DOMPoint {
-	var radians = angle,
-		cos = Math.cos(radians),
-		sin = Math.sin(radians),
-		nx = (cos * (x - cx)) + (sin * (y - cy)) + cx,
-		ny = (cos * (y - cy)) - (sin * (x - cx)) + cy;
-	return new DOMPoint(nx, ny);
-}
-
-function InsidePolygon(point, vs) {
-	var x = point[0], y = point[1];
-
-	var inside = false;
-	for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-		var xi = vs[i][0], yi = vs[i][1];
-		var xj = vs[j][0], yj = vs[j][1];
-
-		var intersect = ((yi > y) != (yj > y))
-			&& (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-		if (intersect) inside = !inside;
-	}
-
-	return inside;
 }
 
 class Line {
@@ -74,7 +48,7 @@ class Line {
 	public b: number;
 
 	public XInDeterminantSpace(x: number): boolean {
-		var inDeterminantSpace = false;
+		let inDeterminantSpace = false;
 		if (this.x1 == Number.NEGATIVE_INFINITY) {
 			if (isFinite(this.x2) && x < this.x2) {
 				inDeterminantSpace = true;
@@ -101,14 +75,14 @@ class Line {
 
 	public constructor(p1: DOMPoint = null, p2: DOMPoint = null) {
 		if (p1 && p2) {
-			var line = this.RefreshLine(p1, p2);
+			let line = this.RefreshLine(p1, p2);
 			this.k = line.k;
 			this.b = line.b;
 		}
 	}
 
 	public RefreshLine(p1: DOMPoint, p2: DOMPoint): Line {
-		var line = new Line();
+		let line = new Line();
 		let translatedP2 = new DOMPoint(p2.x - p1.x, p2.y - p1.y);
 		line.k = translatedP2.y / translatedP2.x;
 		line.b = p2.y - p2.x * line.k;
@@ -116,14 +90,14 @@ class Line {
 	}
 
 	public static CreateLineByK(p1: DOMPoint, k: number): Line {
-		var line = new Line();
+		let line = new Line();
 		line.k = k;
 		line.b = p1.y - p1.x * k;
 		return line;
 	}
 
 	public static CreateLineByB(b: number): Line {
-		var line = new Line();
+		let line = new Line();
 		line.b = b;
 		line.k = 0;
 		return line;
@@ -152,26 +126,26 @@ class Line {
 	}
 
 	public GetNormal(point: DOMPoint): Line {
-		var newK = -1 / this.k;
+		let newK = -1 / this.k;
 		return Line.CreateLineByK(point, newK);
 	}
 
 	public GetRotatedLine(angle: number, x: number): Line {
-		var center = this.GetPointByX(x);
+		let center = this.GetPointByX(x);
 
-		var k = (Math.tan(angle) + this.k) / (1 - Math.tan(angle) * this.k);
+		let k = (Math.tan(angle) + this.k) / (1 - Math.tan(angle) * this.k);
 
-		var rotatedLine = Line.CreateLineByK(center, k);
+		let rotatedLine = Line.CreateLineByK(center, k);
 
 		return rotatedLine;
 	}
 
 	public GetMidPoint(): DOMPoint {
-		var point1 = this.GetPointByX(this.x1);
-		var point2 = this.GetPointByX(this.x2);
+		let point1 = this.GetPointByX(this.x1);
+		let point2 = this.GetPointByX(this.x2);
 
-		var midX = (point2.x - point1.x) / 2 + point1.x;
-		var midY = (point2.y - point1.y) / 2 + point1.y;
+		let midX = (point2.x - point1.x) / 2 + point1.x;
+		let midY = (point2.y - point1.y) / 2 + point1.y;
 
 		return new DOMPoint(midX, midY);
 	}
@@ -239,7 +213,7 @@ class ProcessedRay {
 	}
 
 	public static Plus(ray: ProcessedRay, ray2: ProcessedRay): ProcessedRay {
-		var newRay = new ProcessedRay();
+		let newRay = new ProcessedRay();
 		newRay.RefractionPoints = ray.RefractionPoints.concat(ray2.RefractionPoints);
 		newRay.Closed = ray.Closed || ray2.Closed;
 		return newRay;
@@ -295,11 +269,8 @@ class Mirror extends OpticalElement {
 		let intersection = ray.GetIntersecion(this);
 		if (intersection) {
 			let normal = this.line.GetNormal(intersection);
-			let angle = GetAngleBetweenLines(normal, ray.Line);
-			let reflectedLine = normal.GetRotatedLine(-angle, intersection.x);
-
-			//var reflectedRay = new Ray(intersection, rotate(ray.StartPoint.x, ray.StartPoint.y, intersection.x, intersection.y, -angle));
-			var reflectedRay = new Ray(intersection, RotatePoint(ray.StartPoint, intersection, -2 * angle));
+			let angle = GetAngleBetweenLines(normal, ray.Line);			
+			let reflectedRay = new Ray(intersection, RotatePoint(ray.StartPoint, intersection, -2 * angle));
 		
 			return reflectedRay;
 		}
@@ -326,27 +297,27 @@ class Lens extends OpticalElement {
 const step = 10;
 
 function ProcessRay(elements: OpticalElement[], ray: Ray): ProcessedRay {
-	var processedRay = new ProcessedRay();
+	let processedRay = new ProcessedRay();
 
 	processedRay.RefractionPoints = [ray.StartPoint];
 
-	var newRay = ray;
-	var segmentStartPoint = ray.StartPoint;
-	var segment: { point1: DOMPoint, point2: DOMPoint } = GetRaySegment(newRay, segmentStartPoint, step);
+	let newRay = ray;
+	let segmentStartPoint = ray.StartPoint;
+	let segment: { point1: DOMPoint, point2: DOMPoint } = GetRaySegment(newRay, segmentStartPoint, step);
 
 	let lastCollideIndex = -1;
 
 	for (; SegmentOnTheScreen(segment);) {
 		segment = GetRaySegment(newRay, segmentStartPoint, step);
 
-		var line = new Line(segment.point1, segment.point2);
+		let line = new Line(segment.point1, segment.point2);
 		line.x1 = Math.min(segment.point1.x, segment.point2.x);
 		line.x2 = Math.max(segment.point1.x, segment.point2.x);
 
 		for (let index = 0; index < elements.length; index++) {
 			if (elements[index].Line.GetIntersection(line) && lastCollideIndex != index) {
 				lastCollideIndex = index;
-				var procRay = elements[index].GetProcessedRay(newRay);
+				let procRay = elements[index].GetProcessedRay(newRay);
 				if (procRay) {
 					newRay = procRay;
 					processedRay.RefractionPoints.push(newRay.StartPoint);

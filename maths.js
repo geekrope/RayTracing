@@ -35,7 +35,6 @@ function SegmentOnTheScreen(segment) {
     return Math.min(segment.point1.y, segment.point2.y) >= 0 && Math.min(segment.point1.x, segment.point2.x) >= 0 &&
         Math.max(segment.point1.y, segment.point2.y) <= screen.height && Math.max(segment.point1.x, segment.point2.x) <= screen.width;
 }
-//to remove
 function RotatePoint(point, center, angle) {
     var translatedPoint = new DOMPoint(point.x - center.x, point.y - center.y, point.z, point.w);
     var distance = GetDistance(new DOMPoint(0, 0), translatedPoint);
@@ -45,23 +44,6 @@ function RotatePoint(point, center, angle) {
     translatedPoint.x += center.x;
     translatedPoint.y += center.y;
     return translatedPoint;
-}
-function rotate(cx, cy, x, y, angle) {
-    var radians = angle, cos = Math.cos(radians), sin = Math.sin(radians), nx = (cos * (x - cx)) + (sin * (y - cy)) + cx, ny = (cos * (y - cy)) - (sin * (x - cx)) + cy;
-    return new DOMPoint(nx, ny);
-}
-function InsidePolygon(point, vs) {
-    var x = point[0], y = point[1];
-    var inside = false;
-    for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-        var xi = vs[i][0], yi = vs[i][1];
-        var xj = vs[j][0], yj = vs[j][1];
-        var intersect = ((yi > y) != (yj > y))
-            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-        if (intersect)
-            inside = !inside;
-    }
-    return inside;
 }
 var Line = /** @class */ (function () {
     function Line(p1, p2) {
@@ -280,8 +262,6 @@ var Mirror = /** @class */ (function (_super) {
         if (intersection) {
             var normal = this.line.GetNormal(intersection);
             var angle = GetAngleBetweenLines(normal, ray.Line);
-            var reflectedLine = normal.GetRotatedLine(-angle, intersection.x);
-            //var reflectedRay = new Ray(intersection, rotate(ray.StartPoint.x, ray.StartPoint.y, intersection.x, intersection.y, -angle));
             var reflectedRay = new Ray(intersection, RotatePoint(ray.StartPoint, intersection, -2 * angle));
             return reflectedRay;
         }
