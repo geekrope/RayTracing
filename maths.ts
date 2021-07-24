@@ -32,11 +32,22 @@ function SegmentOnTheScreen(segment: { point1: DOMPoint, point2: DOMPoint }): bo
 //to remove
 function RotatePoint(point: DOMPoint, center: DOMPoint, angle: number): DOMPoint {
 	var translatedPoint = new DOMPoint(point.x - center.x, point.y - center.y, point.z, point.w);
-	translatedPoint.x = translatedPoint.x * Math.cos(angle) - translatedPoint.y * Math.sin(angle);
-	translatedPoint.y = translatedPoint.x * Math.sin(angle) + translatedPoint.y * Math.cos(angle);
+	var distance = GetDistance(new DOMPoint(0, 0), translatedPoint);
+	var addedAngle = Math.atan2(translatedPoint.y, translatedPoint.x);
+	translatedPoint.x = distance * Math.cos(addedAngle + angle);
+	translatedPoint.y = distance * Math.sin(addedAngle + angle);
 	translatedPoint.x += center.x;
 	translatedPoint.y += center.y;
 	return translatedPoint;
+}
+
+function rotate(cx: number, cy: number, x: number, y: number, angle: number): DOMPoint {
+	var radians = angle,
+		cos = Math.cos(radians),
+		sin = Math.sin(radians),
+		nx = (cos * (x - cx)) + (sin * (y - cy)) + cx,
+		ny = (cos * (y - cy)) - (sin * (x - cx)) + cy;
+	return new DOMPoint(nx, ny);
 }
 
 function InsidePolygon(point, vs) {
@@ -287,24 +298,10 @@ class Mirror extends OpticalElement {
 			let angle = GetAngleBetweenLines(normal, ray.Line);
 			let reflectedLine = normal.GetRotatedLine(-angle, intersection.x);
 
-			var mirrorPoint1 = this.Line.GetPointByY(0);
-			var mirrorPoint2 = this.Line.GetPointByY(screen.height);
-
-			var firstHalfPlane = [[0, 0], [0, screen.height], [mirrorPoint2.x, mirrorPoint2.y], [mirrorPoint1.x, mirrorPoint1.y]];
-			//var secondHalfPlane = [[screen.width, 0], [screen.width, screen.height], [mirrorPoint2.x, mirrorPoint2.y], [mirrorPoint1.x, mirrorPoint1.y]];
-
-			//var reflectedRay = new Ray(intersection, RotatePoint(ray.StartPoint, intersection, -2 * angle));
-
-			var x0Point = reflectedLine.GetPointByX(0);
-			var xWidthPoint = reflectedLine.GetPointByX(0);
-
-			if (InsidePolygon([x0Point.x, x0Point.y], firstHalfPlane) && InsidePolygon([ray.StartPoint.x, ray.StartPoint.y], firstHalfPlane)) {
-				return new Ray(intersection, x0Point);
-			}
-			else {
-				return new Ray(intersection, xWidthPoint);
-			}
-			//return reflectedRay;
+			//var reflectedRay = new Ray(intersection, rotate(ray.StartPoint.x, ray.StartPoint.y, intersection.x, intersection.y, -angle));
+			var reflectedRay = new Ray(intersection, RotatePoint(ray.StartPoint, intersection, -2 * angle));
+		
+			return reflectedRay;
 		}
 		return null;
 	}
