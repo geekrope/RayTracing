@@ -27,7 +27,6 @@ function DrawMirror(mirror, cnvsId) {
         ctx.beginPath();
         ctx.moveTo(mirror.Point1.x, mirror.Point1.y);
         ctx.lineTo(mirror.Point2.x, mirror.Point2.y);
-        ctx.closePath();
         ctx.stroke();
     }
 }
@@ -72,7 +71,6 @@ function DrawProcessedRay(ray, cnvsId) {
                 ctx.lineTo(p.x, p.y);
             }
         }
-        ctx.closePath();
         ctx.stroke();
     }
 }
@@ -171,7 +169,7 @@ var VisualRay = /** @class */ (function (_super) {
         configurable: true
     });
     VisualRay.prototype.Draw = function () {
-        DrawProcessedRay(this.ray, this.cnvsId);
+        //DrawProcessedRay(this.ray, this.cnvsId);
         for (var index = 0; index < this.adorners.length; index++) {
             this.adorners[index].Draw();
         }

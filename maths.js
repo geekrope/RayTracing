@@ -35,6 +35,14 @@ function SegmentOnTheScreen(segment) {
     return Math.min(segment.point1.y, segment.point2.y) >= 0 && Math.min(segment.point1.x, segment.point2.x) >= 0 &&
         Math.max(segment.point1.y, segment.point2.y) <= screen.height && Math.max(segment.point1.x, segment.point2.x) <= screen.width;
 }
+function RotatePoint(point, center, angle) {
+    var translatedPoint = new DOMPoint(point.x - center.x, point.y - center.y, point.z, point.w);
+    translatedPoint.x = translatedPoint.x * Math.cos(angle) - translatedPoint.y * Math.sin(angle);
+    translatedPoint.y = translatedPoint.x * Math.sin(angle) + translatedPoint.y * Math.cos(angle);
+    translatedPoint.x += center.x;
+    translatedPoint.y += center.y;
+    return translatedPoint;
+}
 var Line = /** @class */ (function () {
     function Line(p1, p2) {
         if (p1 === void 0) { p1 = null; }
@@ -250,12 +258,14 @@ var Mirror = /** @class */ (function (_super) {
             var normal = this.line.GetNormal(intersection);
             var angle = GetAngleBetweenLines(normal, ray.Line);
             var reflectedLine = normal.GetRotatedLine(-angle, intersection.x);
+            //var reflectedRay = new Ray(intersection, RotatePoint(ray.StartPoint, intersection, angle));
             if (reflectedLine.k < 0) {
                 return new Ray(intersection, reflectedLine.GetPoint(0));
             }
             else {
                 return new Ray(intersection, reflectedLine.GetPoint(screen.width));
             }
+            //return reflectedRay;
         }
         return null;
     };
@@ -281,13 +291,15 @@ function ProcessRay(elements, ray) {
     var newRay = ray;
     var segmentStartPoint = ray.StartPoint;
     var segment = GetRaySegment(newRay, segmentStartPoint, step);
+    var lastCollideIndex = -1;
     for (; SegmentOnTheScreen(segment);) {
         segment = GetRaySegment(newRay, segmentStartPoint, step);
         var line = new Line(segment.point1, segment.point2);
         line.x1 = Math.min(segment.point1.x, segment.point2.x);
         line.x2 = Math.max(segment.point1.x, segment.point2.x);
         for (var index = 0; index < elements.length; index++) {
-            if (elements[index].Line.GetIntersection(line)) {
+            if (elements[index].Line.GetIntersection(line) && lastCollideIndex != index) {
+                lastCollideIndex = index;
                 var procRay = elements[index].GetProcessedRay(newRay);
                 if (procRay) {
                     newRay = procRay;

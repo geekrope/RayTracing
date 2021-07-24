@@ -16,9 +16,7 @@ function DrawMirror(mirror: Mirror, cnvsId: string) {
 		ctx.beginPath();
 
 		ctx.moveTo(mirror.Point1.x, mirror.Point1.y);
-		ctx.lineTo(mirror.Point2.x, mirror.Point2.y);
-
-		ctx.closePath();
+		ctx.lineTo(mirror.Point2.x, mirror.Point2.y);		
 
 		ctx.stroke();
 	}
@@ -71,9 +69,7 @@ function DrawProcessedRay(ray: ProcessedRay | Ray, cnvsId: string) {
 				var p = line.GetPoint(0);
 				ctx.lineTo(p.x, p.y);
 			}
-		}
-
-		ctx.closePath();
+		}		
 
 		ctx.stroke();
 	}
@@ -201,7 +197,7 @@ class VisualRay extends ChangeableObject {
 	}
 
 	public Draw(): void {
-		DrawProcessedRay(this.ray, this.cnvsId);
+		//DrawProcessedRay(this.ray, this.cnvsId);
 		for (let index = 0; index < this.adorners.length; index++) {
 			this.adorners[index].Draw();
 		}
