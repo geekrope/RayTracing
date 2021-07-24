@@ -15,8 +15,10 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 var mirrorColor = "#c0c0c0";
+var lensColor = "#1E90FF";
 var rayColor = "#ffff30";
 var mirrorThickness = 5;
+var lensThickness = 3;
 var rayThickness = 2;
 var rayShadowBlur = 10;
 function DrawMirror(mirror, cnvsId) {
@@ -28,6 +30,18 @@ function DrawMirror(mirror, cnvsId) {
         ctx.beginPath();
         ctx.moveTo(mirror.Point1.x, mirror.Point1.y);
         ctx.lineTo(mirror.Point2.x, mirror.Point2.y);
+        ctx.stroke();
+    }
+}
+function DrawLens(lens, cnvsId) {
+    var element = document.getElementById(cnvsId);
+    if (element) {
+        var ctx = (element).getContext("2d");
+        ctx.strokeStyle = lensColor;
+        ctx.lineWidth = lensThickness;
+        ctx.beginPath();
+        ctx.moveTo(lens.Point1.x, lens.Point1.y);
+        ctx.lineTo(lens.Point2.x, lens.Point2.y);
         ctx.stroke();
     }
 }
@@ -245,6 +259,62 @@ var VisualMirror = /** @class */ (function (_super) {
     };
     return VisualMirror;
 }(ChangeableObject));
+var VisualLens = /** @class */ (function (_super) {
+    __extends(VisualLens, _super);
+    function VisualLens(cnvsId) {
+        var _this = _super.call(this) || this;
+        _this.cnvsId = cnvsId;
+        var firstAdorner = new Adorner(new DOMPoint(200, 200), _this.cnvsId);
+        var secondAdorner = new Adorner(new DOMPoint(150, 100), _this.cnvsId);
+        _this.adorners = [firstAdorner, secondAdorner];
+        _this.lens = new Lens(firstAdorner.Center, secondAdorner.Center);
+        _this.object = _this.lens;
+        firstAdorner.AdornerMoved = _this.UpdateLens.bind(_this);
+        secondAdorner.AdornerMoved = _this.UpdateLens.bind(_this);
+        _this.UpdateLens();
+        return _this;
+    }
+    VisualLens.prototype.UpdateLens = function () {
+        this.lens.Point1 = this.adorners[0].Center;
+        this.lens.Point2 = this.adorners[1].Center;
+    };
+    Object.defineProperty(VisualLens.prototype, "Point1", {
+        get: function () {
+            return this.lens.Point1;
+        },
+        set: function (value) {
+            this.lens.Point1 = value;
+            this.adorners[0].Center = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(VisualLens.prototype, "Point2", {
+        get: function () {
+            return this.lens.Point2;
+        },
+        set: function (value) {
+            this.lens.Point2 = value;
+            this.adorners[1].Center = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(VisualLens.prototype, "Lens", {
+        get: function () {
+            return this.lens;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    VisualLens.prototype.Draw = function () {
+        DrawLens(this.lens, this.cnvsId);
+        for (var index = 0; index < this.adorners.length; index++) {
+            this.adorners[index].Draw();
+        }
+    };
+    return VisualLens;
+}(ChangeableObject));
 var Scene = /** @class */ (function () {
     function Scene(cnvsId) {
         this.cnvsId = cnvsId;
@@ -278,6 +348,9 @@ var Scene = /** @class */ (function () {
     Scene.prototype.AddMirror = function (ev) {
         this.opticalElements.push(new VisualMirror(this.cnvsId));
     };
+    Scene.prototype.AddLens = function (ev) {
+        this.opticalElements.push(new VisualLens(this.cnvsId));
+    };
     Scene.prototype.BindClickEvent = function (id, action) {
         var element = document.getElementById(id);
         if (element) {
@@ -289,7 +362,7 @@ var Scene = /** @class */ (function () {
                     element.addEventListener("click", this.AddMirror.bind(this));
                     break;
                 case "addlens":
-                    element.addEventListener("click", this.AddRay.bind(this));
+                    element.addEventListener("click", this.AddLens.bind(this));
                     break;
                 default:
                     break;
@@ -328,5 +401,6 @@ this.onload = function () {
     Draw(scene);
     scene.BindClickEvent("addRay", "addray");
     scene.BindClickEvent("addMirror", "addmirror");
+    scene.BindClickEvent("addLens", "addlens");
 };
 //# sourceMappingURL=draw.js.map

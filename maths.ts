@@ -221,10 +221,10 @@ class ProcessedRay {
 }
 
 class OpticalElement {
-	private point1: DOMPoint;
-	private point2: DOMPoint;
+	protected point1: DOMPoint;
+	protected point2: DOMPoint;
 
-	private RebuildOpticalElement(): void {
+	protected RebuildOpticalElement(): void {
 		this.line = this.line.RefreshLine(this.point1, this.point2);
 		this.line.x1 = Math.min(this.point1.x, this.point2.x);
 		this.line.x2 = Math.max(this.point1.x, this.point2.x);
@@ -281,16 +281,57 @@ class Mirror extends OpticalElement {
 	}
 }
 
+//focusing lens
 class Lens extends OpticalElement {
+	private MainOpticalAxis: Line;
+	public FocusDistance: number;
+
 	public GetProcessedRay(ray: Ray): Ray {
 		let intersection = ray.GetIntersecion(this);
 		if (intersection) {
+			var mid = this.line.GetMidPoint();
+			var ray1 = new Ray(mid, this.MainOpticalAxis.GetPointByX(0));
+			var ray2 = new Ray(mid, this.MainOpticalAxis.GetPointByX(screen.width));
 
+			var normalToAxis = this.MainOpticalAxis.GetNormal(ray.StartPoint);
+
+			var intersectRay1 = false;
+
+			if (normalToAxis.GetIntersection(ray1.Line)) {
+				intersectRay1 = true;
+			}
+			else if (normalToAxis.GetIntersection(ray2.Line)) {
+				intersectRay1 = false;
+			}
+
+			var focalPoint: DOMPoint = null;
+			if (intersectRay1) {
+				focalPoint = GetRaySegment(ray2, ray2.StartPoint, this.FocusDistance).point2;
+			}
+			else {
+				focalPoint = GetRaySegment(ray1, ray1.StartPoint, this.FocusDistance).point2;
+			}
+
+			var normalToLens = this.Line.GetNormal(ray.StartPoint);
+			var intersectionWithNormal = normalToLens.GetIntersection(this.Line);
+			var defaultLine = new Line(ray.StartPoint, mid);
+			var focalLine = new Line(focalPoint, intersectionWithNormal);
+
+			var pointProjection = defaultLine.GetIntersection(focalLine);
+
+			return new Ray(intersectionWithNormal, pointProjection);
 		}
 		return null;
 	}
+	protected RebuildOpticalElement(): void {
+		this.line = this.line.RefreshLine(this.point1, this.point2);
+		this.line.x1 = Math.min(this.point1.x, this.point2.x);
+		this.line.x2 = Math.max(this.point1.x, this.point2.x);
+		this.MainOpticalAxis = this.line.GetNormal(this.line.GetMidPoint());
+	}
 	public constructor(point1: DOMPoint, point2: DOMPoint) {
 		super(point1, point2);
+		this.FocusDistance = 100;
 	}
 }
 

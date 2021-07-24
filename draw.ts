@@ -1,8 +1,10 @@
 ﻿/// <reference path="maths.ts"/>
 
 const mirrorColor = "#c0c0c0";
+const lensColor = "#1E90FF";
 const rayColor = "#ffff30";
 const mirrorThickness = 5;
+const lensThickness = 3;
 const rayThickness = 2;
 const rayShadowBlur = 10;
 
@@ -18,6 +20,23 @@ function DrawMirror(mirror: Mirror, cnvsId: string) {
 
 		ctx.moveTo(mirror.Point1.x, mirror.Point1.y);
 		ctx.lineTo(mirror.Point2.x, mirror.Point2.y);
+
+		ctx.stroke();
+	}
+}
+
+function DrawLens(lens: Lens, cnvsId: string) {
+	let element = document.getElementById(cnvsId);
+	if (element) {
+		let ctx = (<HTMLCanvasElement>(element)).getContext("2d");
+
+		ctx.strokeStyle = lensColor;
+		ctx.lineWidth = lensThickness;
+
+		ctx.beginPath();
+
+		ctx.moveTo(lens.Point1.x, lens.Point1.y);
+		ctx.lineTo(lens.Point2.x, lens.Point2.y);
 
 		ctx.stroke();
 	}
@@ -271,6 +290,61 @@ class VisualMirror extends ChangeableObject {
 	}
 }
 
+class VisualLens extends ChangeableObject {
+	private cnvsId: string;
+	private lens: Lens;
+
+	private UpdateLens() {
+		this.lens.Point1 = this.adorners[0].Center;
+		this.lens.Point2 = this.adorners[1].Center;
+	}
+
+	public get Point1(): DOMPoint {
+		return this.lens.Point1;
+	}
+	public get Point2(): DOMPoint {
+		return this.lens.Point2;
+	}
+
+	public set Point1(value: DOMPoint) {
+		this.lens.Point1 = value;
+		this.adorners[0].Center = value;
+	}
+	public set Point2(value: DOMPoint) {
+		this.lens.Point2 = value;
+		this.adorners[1].Center = value;
+	}
+
+	public get Lens(): Lens {
+		return this.lens;
+	}
+
+	public constructor(cnvsId: string) {
+		super();
+		this.cnvsId = cnvsId;
+
+		let firstAdorner = new Adorner(new DOMPoint(200, 200), this.cnvsId);
+		let secondAdorner = new Adorner(new DOMPoint(150, 100), this.cnvsId);
+
+		this.adorners = [firstAdorner, secondAdorner];
+
+		this.lens = new Lens(firstAdorner.Center, secondAdorner.Center);
+		this.object = this.lens;
+
+		firstAdorner.AdornerMoved = this.UpdateLens.bind(this);
+		secondAdorner.AdornerMoved = this.UpdateLens.bind(this);
+
+		this.UpdateLens();
+	}
+
+	public Draw(): void {
+		DrawLens(this.lens, this.cnvsId);
+		for (let index = 0; index < this.adorners.length; index++) {
+			this.adorners[index].Draw();
+		}
+	}
+}
+
 class Scene {
 	private cnvsId: string;
 
@@ -303,6 +377,10 @@ class Scene {
 		this.opticalElements.push(new VisualMirror(this.cnvsId));
 	}
 
+	public AddLens(ev: MouseEvent): void {
+		this.opticalElements.push(new VisualLens(this.cnvsId));
+	}
+
 	public BindClickEvent(id: string, action: action): void {
 		var element = document.getElementById(id);
 		if (element) {
@@ -314,7 +392,7 @@ class Scene {
 					element.addEventListener("click", this.AddMirror.bind(this));
 					break;
 				case "addlens":
-					element.addEventListener("click", this.AddRay.bind(this));
+					element.addEventListener("click", this.AddLens.bind(this));
 					break;
 				default:
 					break;
@@ -359,4 +437,5 @@ this.onload = () => {
 	Draw(scene);
 	scene.BindClickEvent("addRay", "addray");
 	scene.BindClickEvent("addMirror", "addmirror");
+	scene.BindClickEvent("addLens", "addlens");
 }
