@@ -29,6 +29,7 @@ function SegmentOnTheScreen(segment: { point1: DOMPoint, point2: DOMPoint }): bo
 		Math.max(segment.point1.y, segment.point2.y) <= screen.height && Math.max(segment.point1.x, segment.point2.x) <= screen.width;
 }
 
+//to remove
 function RotatePoint(point: DOMPoint, center: DOMPoint, angle: number): DOMPoint {
 	var translatedPoint = new DOMPoint(point.x - center.x, point.y - center.y, point.z, point.w);
 	translatedPoint.x = translatedPoint.x * Math.cos(angle) - translatedPoint.y * Math.sin(angle);
@@ -36,6 +37,22 @@ function RotatePoint(point: DOMPoint, center: DOMPoint, angle: number): DOMPoint
 	translatedPoint.x += center.x;
 	translatedPoint.y += center.y;
 	return translatedPoint;
+}
+
+function InsidePolygon(point, vs) {
+	var x = point[0], y = point[1];
+
+	var inside = false;
+	for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+		var xi = vs[i][0], yi = vs[i][1];
+		var xj = vs[j][0], yj = vs[j][1];
+
+		var intersect = ((yi > y) != (yj > y))
+			&& (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+		if (intersect) inside = !inside;
+	}
+
+	return inside;
 }
 
 class Line {
@@ -101,7 +118,11 @@ class Line {
 		return line;
 	}
 
-	public GetPoint(x: number): DOMPoint {
+	public GetPointByY(y: number): DOMPoint {
+		return new DOMPoint((y - this.b) / this.k, y);
+	}
+
+	public GetPointByX(x: number): DOMPoint {
 		return new DOMPoint(x, x * this.k + this.b);
 	}
 
@@ -114,7 +135,7 @@ class Line {
 		}
 
 		if (this.XInDeterminantSpace(x) && line.XInDeterminantSpace(x)) {
-			return this.GetPoint(x);
+			return this.GetPointByX(x);
 		}
 		return null;
 	}
@@ -125,7 +146,7 @@ class Line {
 	}
 
 	public GetRotatedLine(angle: number, x: number): Line {
-		var center = this.GetPoint(x);
+		var center = this.GetPointByX(x);
 
 		var k = (Math.tan(angle) + this.k) / (1 - Math.tan(angle) * this.k);
 
@@ -135,8 +156,8 @@ class Line {
 	}
 
 	public GetMidPoint(): DOMPoint {
-		var point1 = this.GetPoint(this.x1);
-		var point2 = this.GetPoint(this.x2);
+		var point1 = this.GetPointByX(this.x1);
+		var point2 = this.GetPointByX(this.x2);
 
 		var midX = (point2.x - point1.x) / 2 + point1.x;
 		var midY = (point2.y - point1.y) / 2 + point1.y;
@@ -266,13 +287,22 @@ class Mirror extends OpticalElement {
 			let angle = GetAngleBetweenLines(normal, ray.Line);
 			let reflectedLine = normal.GetRotatedLine(-angle, intersection.x);
 
-			//var reflectedRay = new Ray(intersection, RotatePoint(ray.StartPoint, intersection, angle));
+			var mirrorPoint1 = this.Line.GetPointByY(0);
+			var mirrorPoint2 = this.Line.GetPointByY(screen.height);
 
-			if (reflectedLine.k < 0) {
-				return new Ray(intersection, reflectedLine.GetPoint(0));
+			var firstHalfPlane = [[0, 0], [0, screen.height], [mirrorPoint2.x, mirrorPoint2.y], [mirrorPoint1.x, mirrorPoint1.y]];
+			//var secondHalfPlane = [[screen.width, 0], [screen.width, screen.height], [mirrorPoint2.x, mirrorPoint2.y], [mirrorPoint1.x, mirrorPoint1.y]];
+
+			//var reflectedRay = new Ray(intersection, RotatePoint(ray.StartPoint, intersection, -2 * angle));
+
+			var x0Point = reflectedLine.GetPointByX(0);
+			var xWidthPoint = reflectedLine.GetPointByX(0);
+
+			if (InsidePolygon([x0Point.x, x0Point.y], firstHalfPlane) && InsidePolygon([ray.StartPoint.x, ray.StartPoint.y], firstHalfPlane)) {
+				return new Ray(intersection, x0Point);
 			}
 			else {
-				return new Ray(intersection, reflectedLine.GetPoint(screen.width));
+				return new Ray(intersection, xWidthPoint);
 			}
 			//return reflectedRay;
 		}
@@ -314,7 +344,7 @@ function ProcessRay(elements: OpticalElement[], ray: Ray): ProcessedRay {
 
 		var line = new Line(segment.point1, segment.point2);
 		line.x1 = Math.min(segment.point1.x, segment.point2.x);
-		line.x2 = Math.max(segment.point1.x, segment.point2.x);		
+		line.x2 = Math.max(segment.point1.x, segment.point2.x);
 
 		for (let index = 0; index < elements.length; index++) {
 			if (elements[index].Line.GetIntersection(line) && lastCollideIndex != index) {

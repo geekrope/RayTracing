@@ -50,11 +50,11 @@ function DrawProcessedRay(ray, cnvsId) {
                 var lastPoint = ray.RefractionPoints[ray.RefractionPoints.length - 1];
                 var line = new Line(prevPoint, lastPoint);
                 if (prevPoint.x < lastPoint.x) {
-                    var p = line.GetPoint(screen.width);
+                    var p = line.GetPointByX(screen.width);
                     ctx.lineTo(p.x, p.y);
                 }
                 else {
-                    var p = line.GetPoint(0);
+                    var p = line.GetPointByX(0);
                     ctx.lineTo(p.x, p.y);
                 }
             }
@@ -63,11 +63,11 @@ function DrawProcessedRay(ray, cnvsId) {
             ctx.moveTo(ray.StartPoint.x, ray.StartPoint.y);
             var line = new Line(ray.StartPoint, ray.DirectionPoint);
             if (ray.StartPoint.x < ray.DirectionPoint.x) {
-                var p = line.GetPoint(screen.width);
+                var p = line.GetPointByX(screen.width);
                 ctx.lineTo(p.x, p.y);
             }
             else {
-                var p = line.GetPoint(0);
+                var p = line.GetPointByX(0);
                 ctx.lineTo(p.x, p.y);
             }
         }

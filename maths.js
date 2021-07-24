@@ -35,6 +35,7 @@ function SegmentOnTheScreen(segment) {
     return Math.min(segment.point1.y, segment.point2.y) >= 0 && Math.min(segment.point1.x, segment.point2.x) >= 0 &&
         Math.max(segment.point1.y, segment.point2.y) <= screen.height && Math.max(segment.point1.x, segment.point2.x) <= screen.width;
 }
+//to remove
 function RotatePoint(point, center, angle) {
     var translatedPoint = new DOMPoint(point.x - center.x, point.y - center.y, point.z, point.w);
     translatedPoint.x = translatedPoint.x * Math.cos(angle) - translatedPoint.y * Math.sin(angle);
@@ -42,6 +43,19 @@ function RotatePoint(point, center, angle) {
     translatedPoint.x += center.x;
     translatedPoint.y += center.y;
     return translatedPoint;
+}
+function InsidePolygon(point, vs) {
+    var x = point[0], y = point[1];
+    var inside = false;
+    for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        var xi = vs[i][0], yi = vs[i][1];
+        var xj = vs[j][0], yj = vs[j][1];
+        var intersect = ((yi > y) != (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect)
+            inside = !inside;
+    }
+    return inside;
 }
 var Line = /** @class */ (function () {
     function Line(p1, p2) {
@@ -99,7 +113,10 @@ var Line = /** @class */ (function () {
         line.k = 0;
         return line;
     };
-    Line.prototype.GetPoint = function (x) {
+    Line.prototype.GetPointByY = function (y) {
+        return new DOMPoint((y - this.b) / this.k, y);
+    };
+    Line.prototype.GetPointByX = function (x) {
         return new DOMPoint(x, x * this.k + this.b);
     };
     Line.prototype.GetIntersection = function (line) {
@@ -109,7 +126,7 @@ var Line = /** @class */ (function () {
             return null;
         }
         if (this.XInDeterminantSpace(x) && line.XInDeterminantSpace(x)) {
-            return this.GetPoint(x);
+            return this.GetPointByX(x);
         }
         return null;
     };
@@ -118,14 +135,14 @@ var Line = /** @class */ (function () {
         return Line.CreateLineByK(point, newK);
     };
     Line.prototype.GetRotatedLine = function (angle, x) {
-        var center = this.GetPoint(x);
+        var center = this.GetPointByX(x);
         var k = (Math.tan(angle) + this.k) / (1 - Math.tan(angle) * this.k);
         var rotatedLine = Line.CreateLineByK(center, k);
         return rotatedLine;
     };
     Line.prototype.GetMidPoint = function () {
-        var point1 = this.GetPoint(this.x1);
-        var point2 = this.GetPoint(this.x2);
+        var point1 = this.GetPointByX(this.x1);
+        var point2 = this.GetPointByX(this.x2);
         var midX = (point2.x - point1.x) / 2 + point1.x;
         var midY = (point2.y - point1.y) / 2 + point1.y;
         return new DOMPoint(midX, midY);
@@ -258,12 +275,18 @@ var Mirror = /** @class */ (function (_super) {
             var normal = this.line.GetNormal(intersection);
             var angle = GetAngleBetweenLines(normal, ray.Line);
             var reflectedLine = normal.GetRotatedLine(-angle, intersection.x);
-            //var reflectedRay = new Ray(intersection, RotatePoint(ray.StartPoint, intersection, angle));
-            if (reflectedLine.k < 0) {
-                return new Ray(intersection, reflectedLine.GetPoint(0));
+            var mirrorPoint1 = this.Line.GetPointByY(0);
+            var mirrorPoint2 = this.Line.GetPointByY(screen.height);
+            var firstHalfPlane = [[0, 0], [0, screen.height], [mirrorPoint2.x, mirrorPoint2.y], [mirrorPoint1.x, mirrorPoint1.y]];
+            //var secondHalfPlane = [[screen.width, 0], [screen.width, screen.height], [mirrorPoint2.x, mirrorPoint2.y], [mirrorPoint1.x, mirrorPoint1.y]];
+            //var reflectedRay = new Ray(intersection, RotatePoint(ray.StartPoint, intersection, -2 * angle));
+            var x0Point = reflectedLine.GetPointByX(0);
+            var xWidthPoint = reflectedLine.GetPointByX(0);
+            if (InsidePolygon([x0Point.x, x0Point.y], firstHalfPlane) && InsidePolygon([ray.StartPoint.x, ray.StartPoint.y], firstHalfPlane)) {
+                return new Ray(intersection, x0Point);
             }
             else {
-                return new Ray(intersection, reflectedLine.GetPoint(screen.width));
+                return new Ray(intersection, xWidthPoint);
             }
             //return reflectedRay;
         }
