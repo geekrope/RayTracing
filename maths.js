@@ -60,7 +60,7 @@ var Line = /** @class */ (function () {
     Line.prototype.XInDeterminantSpace = function (x) {
         var inDeterminantSpace = false;
         if (this.x1 == Number.NEGATIVE_INFINITY) {
-            if (isFinite(this.x2) && x < this.x2) {
+            if (isFinite(this.x2) && x <= this.x2) {
                 inDeterminantSpace = true;
             }
             else if (this.x2 == Number.POSITIVE_INFINITY) {
@@ -68,7 +68,7 @@ var Line = /** @class */ (function () {
             }
         }
         else if (this.x2 == Number.POSITIVE_INFINITY) {
-            if (isFinite(this.x1) && x > this.x1) {
+            if (isFinite(this.x1) && x >= this.x1) {
                 inDeterminantSpace = true;
             }
             else if (this.x1 == Number.NEGATIVE_INFINITY) {
@@ -76,7 +76,7 @@ var Line = /** @class */ (function () {
             }
         }
         else {
-            if (x > this.x1 && x < this.x2) {
+            if (x >= this.x1 && x <= this.x2) {
                 inDeterminantSpace = true;
             }
         }
@@ -282,7 +282,7 @@ var Lens = /** @class */ (function (_super) {
     };
     return Lens;
 }(OpticalElement));
-var step = 10;
+var step = 1;
 function ProcessRay(elements, ray) {
     var processedRay = new ProcessedRay();
     processedRay.RefractionPoints = [ray.StartPoint];

@@ -50,7 +50,7 @@ class Line {
 	public XInDeterminantSpace(x: number): boolean {
 		let inDeterminantSpace = false;
 		if (this.x1 == Number.NEGATIVE_INFINITY) {
-			if (isFinite(this.x2) && x < this.x2) {
+			if (isFinite(this.x2) && x <= this.x2) {
 				inDeterminantSpace = true;
 			}
 			else if (this.x2 == Number.POSITIVE_INFINITY) {
@@ -58,7 +58,7 @@ class Line {
 			}
 		}
 		else if (this.x2 == Number.POSITIVE_INFINITY) {
-			if (isFinite(this.x1) && x > this.x1) {
+			if (isFinite(this.x1) && x >= this.x1) {
 				inDeterminantSpace = true;
 			}
 			else if (this.x1 == Number.NEGATIVE_INFINITY) {
@@ -66,7 +66,7 @@ class Line {
 			}
 		}
 		else {
-			if (x > this.x1 && x < this.x2) {
+			if (x >= this.x1 && x <= this.x2) {
 				inDeterminantSpace = true;
 			}
 		}
@@ -269,9 +269,9 @@ class Mirror extends OpticalElement {
 		let intersection = ray.GetIntersecion(this);
 		if (intersection) {
 			let normal = this.line.GetNormal(intersection);
-			let angle = GetAngleBetweenLines(normal, ray.Line);			
+			let angle = GetAngleBetweenLines(normal, ray.Line);
 			let reflectedRay = new Ray(intersection, RotatePoint(ray.StartPoint, intersection, -2 * angle));
-		
+
 			return reflectedRay;
 		}
 		return null;
@@ -294,7 +294,7 @@ class Lens extends OpticalElement {
 	}
 }
 
-const step = 10;
+const step = 1;
 
 function ProcessRay(elements: OpticalElement[], ray: Ray): ProcessedRay {
 	let processedRay = new ProcessedRay();

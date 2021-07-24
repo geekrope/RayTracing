@@ -82,7 +82,7 @@ function DrawProcessedRay(ray: ProcessedRay | Ray, cnvsId: string) {
 	}
 }
 
-const Radius = 5;
+const Radius = 10;
 const AdornerColor = "#1E90FF";
 const AdornerFillColor = "#FFFFFF";
 const AdornerThickness = 2;

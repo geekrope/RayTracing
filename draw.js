@@ -79,7 +79,7 @@ function DrawProcessedRay(ray, cnvsId) {
         ctx.shadowBlur = 0;
     }
 }
-var Radius = 5;
+var Radius = 10;
 var AdornerColor = "#1E90FF";
 var AdornerFillColor = "#FFFFFF";
 var AdornerThickness = 2;
