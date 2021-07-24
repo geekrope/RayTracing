@@ -287,7 +287,7 @@ var Lens = /** @class */ (function (_super) {
 var step = 10;
 function ProcessRay(elements, ray) {
     var processedRay = new ProcessedRay();
-    processedRay.RefractionPoints = [ray.StartPoint, ray.DirectionPoint];
+    processedRay.RefractionPoints = [ray.StartPoint];
     var newRay = ray;
     var segmentStartPoint = ray.StartPoint;
     var segment = GetRaySegment(newRay, segmentStartPoint, step);

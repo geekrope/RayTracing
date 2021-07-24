@@ -301,7 +301,7 @@ const step = 10;
 function ProcessRay(elements: OpticalElement[], ray: Ray): ProcessedRay {
 	var processedRay = new ProcessedRay();
 
-	processedRay.RefractionPoints = [ray.StartPoint, ray.DirectionPoint];
+	processedRay.RefractionPoints = [ray.StartPoint];
 
 	var newRay = ray;
 	var segmentStartPoint = ray.StartPoint;
