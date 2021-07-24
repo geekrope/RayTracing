@@ -299,11 +299,14 @@ var Lens = /** @class */ (function (_super) {
                 focalPoint = GetRaySegment(ray1, ray1.StartPoint, this.FocusDistance).point2;
             }
             var normalToLens = this.Line.GetNormal(ray.StartPoint);
-            var intersectionWithNormal = normalToLens.GetIntersection(this.Line);
+            var infiniteLine = new Line();
+            infiniteLine.k = this.Line.k;
+            infiniteLine.b = this.Line.b;
+            var intersectionWithNormal = normalToLens.GetIntersection(infiniteLine);
             var defaultLine = new Line(ray.StartPoint, mid);
             var focalLine = new Line(focalPoint, intersectionWithNormal);
             var pointProjection = defaultLine.GetIntersection(focalLine);
-            return new Ray(intersectionWithNormal, pointProjection);
+            return new Ray(intersection, pointProjection);
         }
         return null;
     };
