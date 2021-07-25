@@ -288,27 +288,6 @@ class Mirror extends OpticalElement {
 	}
 }
 
-function drawLine(line: Line) {
-	var canvas = document.getElementById("playground");
-
-	if (canvas) {
-		let ctx = (<HTMLCanvasElement>(canvas)).getContext("2d");
-
-		ctx.strokeStyle = "black";
-		ctx.lineWidth = 5;
-
-		var p1 = line.GetPointByX(0);
-		var p2 = line.GetPointByX(screen.width);
-
-		ctx.beginPath();
-
-		ctx.moveTo(p1.x, p1.y);
-		ctx.lineTo(p2.x, p2.y);
-
-		ctx.stroke();
-	}
-}
-
 //focusing lens
 class Lens extends OpticalElement {
 	private MainOpticalAxis: Line;
@@ -351,10 +330,6 @@ class Lens extends OpticalElement {
 			var normalThroughFocus = this.MainOpticalAxis.GetNormal(focalPoint);
 
 			var pointProjection = parallelLineToRay.GetIntersection(normalThroughFocus);
-
-			drawLine(parallelLineToRay);
-			drawLine(this.Line.GetNormal(mid));
-			drawLine(normalThroughFocus);
 
 			return new Ray(intersection, pointProjection);
 		}

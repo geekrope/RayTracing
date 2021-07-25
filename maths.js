@@ -275,20 +275,6 @@ var Mirror = /** @class */ (function (_super) {
     };
     return Mirror;
 }(OpticalElement));
-function drawLine(line) {
-    var canvas = document.getElementById("playground");
-    if (canvas) {
-        var ctx = (canvas).getContext("2d");
-        ctx.strokeStyle = "black";
-        ctx.lineWidth = 5;
-        var p1 = line.GetPointByX(0);
-        var p2 = line.GetPointByX(screen.width);
-        ctx.beginPath();
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        ctx.stroke();
-    }
-}
 //focusing lens
 var Lens = /** @class */ (function (_super) {
     __extends(Lens, _super);
@@ -325,9 +311,6 @@ var Lens = /** @class */ (function (_super) {
             }
             var normalThroughFocus = this.MainOpticalAxis.GetNormal(focalPoint);
             var pointProjection = parallelLineToRay.GetIntersection(normalThroughFocus);
-            drawLine(parallelLineToRay);
-            drawLine(this.Line.GetNormal(mid));
-            drawLine(normalThroughFocus);
             return new Ray(intersection, pointProjection);
         }
         return null;
