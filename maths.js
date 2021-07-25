@@ -175,11 +175,11 @@ var Ray = /** @class */ (function () {
     Ray.prototype.RebuildRay = function () {
         this.line = this.line.RefreshLine(this.startPoint, this.directionPoint);
         if (this.startPoint.x > this.directionPoint.x) {
-            this.line.x1 = Number.MIN_VALUE;
+            this.line.x1 = Number.NEGATIVE_INFINITY;
             this.line.x2 = this.startPoint.x;
         }
         else {
-            this.line.x2 = Number.MAX_VALUE;
+            this.line.x2 = Number.POSITIVE_INFINITY;
             this.line.x1 = this.startPoint.x;
         }
     };
