@@ -303,7 +303,7 @@ var Lens = /** @class */ (function (_super) {
                 else {
                     focalPoint = GetRaySegment(ray2, ray2.StartPoint, this.FocusDistance).point2;
                 }
-                var focalLine = new Line(focalPoint, infiniteLine.GetIntersection(new Line(ray.StartPoint, focalPoint)));
+                var focalLine = new Line(focalPoint, ray.StartPoint);
                 var focalLineIntersection = focalLine.GetIntersection(infiniteLine);
                 var normalThroughIntersection = infiniteLine.GetNormal(focalLineIntersection);
                 var defaultLine = new Line(ray.StartPoint, mid);
