@@ -304,25 +304,52 @@ class Lens extends OpticalElement {
 				intersectRay1 = false;
 			}
 
-			var focalPoint: DOMPoint = null;
-			if (intersectRay1) {
-				focalPoint = GetRaySegment(ray2, ray2.StartPoint, this.FocusDistance).point2;
-			}
-			else {
-				focalPoint = GetRaySegment(ray1, ray1.StartPoint, this.FocusDistance).point2;
-			}
+			var distanceToLens = GetDistance(mid, normalToAxis.GetIntersection(this.MainOpticalAxis));
 
-			var normalToLens = this.Line.GetNormal(ray.StartPoint);
 			var infiniteLine = new Line();
 			infiniteLine.k = this.Line.k;
 			infiniteLine.b = this.Line.b;
-			var intersectionWithNormal = normalToLens.GetIntersection(infiniteLine);
-			var defaultLine = new Line(ray.StartPoint, mid);
-			var focalLine = new Line(focalPoint, intersectionWithNormal);
 
-			var pointProjection = defaultLine.GetIntersection(focalLine);
+			if (distanceToLens < this.FocusDistance) {
+				var focalPoint: DOMPoint = null;
+				if (intersectRay1) {
+					focalPoint = GetRaySegment(ray1, ray1.StartPoint, this.FocusDistance).point2;
+				}
+				else {
+					focalPoint = GetRaySegment(ray2, ray2.StartPoint, this.FocusDistance).point2;
+				}
 
-			return new Ray(intersection, pointProjection);
+				var focalLine = new Line(focalPoint, infiniteLine.GetIntersection(new Line(ray.StartPoint, focalPoint)));
+				var focalLineIntersection = focalLine.GetIntersection(infiniteLine);
+
+				var normalThroughIntersection = infiniteLine.GetNormal(focalLineIntersection);
+
+				var defaultLine = new Line(ray.StartPoint, mid);
+
+				var newPoint = defaultLine.GetIntersection(normalThroughIntersection);
+
+				var unclippedRay = new Line(newPoint, intersection);
+
+				return new Ray(intersection, unclippedRay.GetIntersection(this.MainOpticalAxis));
+			}
+			else {
+				var focalPoint: DOMPoint = null;
+				if (intersectRay1) {
+					focalPoint = GetRaySegment(ray2, ray2.StartPoint, this.FocusDistance).point2;
+				}
+				else {
+					focalPoint = GetRaySegment(ray1, ray1.StartPoint, this.FocusDistance).point2;
+				}
+
+				var normalToLens = this.Line.GetNormal(ray.StartPoint);
+				var intersectionWithNormal = normalToLens.GetIntersection(infiniteLine);
+				var defaultLine = new Line(ray.StartPoint, mid);
+				var focalLine = new Line(focalPoint, intersectionWithNormal);
+
+				var pointProjection = defaultLine.GetIntersection(focalLine);
+
+				return new Ray(intersection, pointProjection);
+			}
 		}
 		return null;
 	}
