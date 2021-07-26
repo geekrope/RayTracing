@@ -44,8 +44,8 @@ class Line {
 	public x1 = Number.NEGATIVE_INFINITY;
 	public x2 = Number.POSITIVE_INFINITY;
 
-	public k: number;
-	public b: number;
+	public k: number = 0;
+	public b: number = 0;
 
 	public XInDeterminantSpace(x: number): boolean {
 		let inDeterminantSpace = false;
@@ -73,7 +73,7 @@ class Line {
 		return inDeterminantSpace;
 	}
 
-	public constructor(p1: DOMPoint = null, p2: DOMPoint = null) {
+	public constructor(p1: DOMPoint | null = null, p2: DOMPoint | null = null) {
 		if (p1 && p2) {
 			let line = this.RefreshLine(p1, p2);
 			this.k = line.k;
@@ -111,7 +111,7 @@ class Line {
 		return new DOMPoint(x, x * this.k + this.b);
 	}
 
-	public GetIntersection(line: Line): DOMPoint {
+	public GetIntersection(line: Line): DOMPoint | null {
 		let x = (line.b - this.b) / (this.k - line.k);
 
 		if (line.k == this.k) {
@@ -198,7 +198,7 @@ class Ray {
 		this.RebuildRay();
 	}
 
-	public GetIntersecion(element: OpticalElement): DOMPoint {
+	public GetIntersecion(element: OpticalElement): DOMPoint | null {
 		return element.Line.GetIntersection(this.line);
 	}
 
@@ -209,9 +209,9 @@ class Ray {
 
 class ProcessedRay {
 	public RefractionPoints: DOMPoint[];
-	public Closed: boolean;
+	public Closed: boolean = false;
 
-	constructor(ray: Ray = null) {
+	constructor(ray: Ray | null = null) {
 		this.RefractionPoints = [];
 		if (ray) {
 			this.Closed = false;
@@ -266,7 +266,7 @@ class OpticalElement {
 		this.RebuildOpticalElement();
 	}
 
-	GetProcessedRay(ray: Ray): Ray {
+	GetProcessedRay(ray: Ray): Ray | null {
 		return null;
 	}
 }
@@ -294,7 +294,7 @@ class LightSource {
 		this.point2 = point2;
 	}
 
-	public GetRays(): Ray[] {
+	public GetRays(): Ray[] | null {
 		return null;
 	}
 }
@@ -333,7 +333,7 @@ class ParallelRaysSource extends LightSource {
 }
 
 class Mirror extends OpticalElement {
-	public GetProcessedRay(ray: Ray): Ray {
+	public GetProcessedRay(ray: Ray): Ray | null {
 		let intersection = ray.GetIntersecion(this);
 		if (intersection) {
 			let normal = this.line.GetNormal(intersection);
@@ -351,14 +351,14 @@ class Mirror extends OpticalElement {
 
 //focusing lens
 class Lens extends OpticalElement {
-	private mainOpticalAxis: Line;
+	private mainOpticalAxis: Line = new Line();
 	public FocusDistance: number;
 
 	public get MainOpticalAxis() {
 		return this.mainOpticalAxis;
 	}
 
-	public GetProcessedRay(ray: Ray): Ray {
+	public GetProcessedRay(ray: Ray): Ray | null {
 		let intersection = ray.GetIntersecion(this);
 		if (intersection) {
 			let mid = this.line.GetMidPoint();
@@ -382,7 +382,7 @@ class Lens extends OpticalElement {
 
 			let parallelLineToRay = ray.Line.GetParallelLine(mid);
 
-			let focalPoint: DOMPoint = null;
+			let focalPoint: DOMPoint | null = null;
 			if (intersectRay1) {
 				focalPoint = GetRaySegment(ray2, ray2.StartPoint, this.FocusDistance).point2;
 			}
@@ -394,7 +394,9 @@ class Lens extends OpticalElement {
 
 			let pointProjection = parallelLineToRay.GetIntersection(normalThroughFocus);
 
-			return new Ray(intersection, pointProjection);
+			if (pointProjection) {
+				return new Ray(intersection, pointProjection);
+			}
 		}
 		return null;
 	}

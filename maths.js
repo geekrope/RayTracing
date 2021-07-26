@@ -1,3 +1,4 @@
+"use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
@@ -51,6 +52,8 @@ var Line = /** @class */ (function () {
         if (p2 === void 0) { p2 = null; }
         this.x1 = Number.NEGATIVE_INFINITY;
         this.x2 = Number.POSITIVE_INFINITY;
+        this.k = 0;
+        this.b = 0;
         if (p1 && p2) {
             var line = this.RefreshLine(p1, p2);
             this.k = line.k;
@@ -198,6 +201,7 @@ var Ray = /** @class */ (function () {
 var ProcessedRay = /** @class */ (function () {
     function ProcessedRay(ray) {
         if (ray === void 0) { ray = null; }
+        this.Closed = false;
         this.RefractionPoints = [];
         if (ray) {
             this.Closed = false;
@@ -343,6 +347,7 @@ var Lens = /** @class */ (function (_super) {
     __extends(Lens, _super);
     function Lens(point1, point2) {
         var _this = _super.call(this, point1, point2) || this;
+        _this.mainOpticalAxis = new Line();
         _this.FocusDistance = 100;
         return _this;
     }
@@ -380,7 +385,9 @@ var Lens = /** @class */ (function (_super) {
             }
             var normalThroughFocus = this.mainOpticalAxis.GetNormal(focalPoint);
             var pointProjection = parallelLineToRay.GetIntersection(normalThroughFocus);
-            return new Ray(intersection, pointProjection);
+            if (pointProjection) {
+                return new Ray(intersection, pointProjection);
+            }
         }
         return null;
     };
