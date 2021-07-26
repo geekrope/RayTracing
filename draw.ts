@@ -20,6 +20,30 @@ const arrowSize = 35;
 const textSize = 24;
 const textFont = "Arial";
 
+function DrawPolygon(points: DOMPoint[], cnvsId: string, fill: boolean = false) {
+	let element = document.getElementById(cnvsId);
+	if (element) {
+		let ctx = (<HTMLCanvasElement>(element)).getContext("2d");
+
+		if (ctx) {			
+			ctx.beginPath();
+
+			if (points.length > 0) {
+				ctx.moveTo(points[0].x, points[0].y);
+				for (let index = 1; index < points.length; index++) {
+					ctx.lineTo(points[index].x, points[index].y);
+				}
+			}
+
+			if (fill) {
+				ctx.fill();
+			}
+
+			ctx.stroke();
+		}
+	}
+}
+
 function DrawLine(line: Line, cnvsId: string) {
 	let x0Point = line.GetPointByX(0);
 	let xFullWidthPoint = line.GetPointByX(screen.width);
@@ -117,11 +141,9 @@ function DrawLens(lens: Lens, cnvsId: string) {
 			var thirdPoint = new DOMPoint(lens.Point2.x + Math.cos(thirdLineAngle) * arrowSize, lens.Point2.y + Math.sin(thirdLineAngle) * arrowSize);
 			var fourthPoint = new DOMPoint(lens.Point2.x + Math.cos(fourthLineAngle) * arrowSize, lens.Point2.y + Math.sin(fourthLineAngle) * arrowSize);
 
-			DrawSegment(lens.Point1, firstPoint, cnvsId);
-			DrawSegment(lens.Point1, secondPoint, cnvsId);
+			DrawPolygon([firstPoint, lens.Point1, secondPoint], cnvsId);
 
-			DrawSegment(lens.Point2, thirdPoint, cnvsId);
-			DrawSegment(lens.Point2, fourthPoint, cnvsId);
+			DrawPolygon([thirdPoint, lens.Point2, fourthPoint], cnvsId);
 
 			ctx.globalAlpha = alpha;
 			ctx.strokeStyle = metricsColor;
