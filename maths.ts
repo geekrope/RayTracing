@@ -151,7 +151,7 @@ class Line {
 	}
 
 	public GetParallelLine(point: DOMPoint): Line {
-		var parallelLine = new Line();
+		let parallelLine = new Line();
 		parallelLine.k = this.k;
 		parallelLine.b = point.y - point.x * parallelLine.k;
 		return parallelLine;
@@ -228,8 +228,8 @@ class ProcessedRay {
 }
 
 class OpticalElement {
-	protected point1: DOMPoint;
-	protected point2: DOMPoint;
+	private point1: DOMPoint;
+	private point2: DOMPoint;
 
 	protected RebuildOpticalElement(): void {
 		this.line = this.line.RefreshLine(this.point1, this.point2);
@@ -271,6 +271,67 @@ class OpticalElement {
 	}
 }
 
+class LightSource {
+	protected point1: DOMPoint;
+	protected point2: DOMPoint;
+
+	public get Point1(): DOMPoint {
+		return this.point1;
+	}
+	public get Point2(): DOMPoint {
+		return this.point2;
+	}
+
+	public set Point1(value: DOMPoint) {
+		this.point1 = value;
+	}
+	public set Point2(value: DOMPoint) {
+		this.point2 = value;
+	}
+
+	public constructor(point1: DOMPoint, point2: DOMPoint) {
+		this.point1 = point1;
+		this.point2 = point2;
+	}
+
+	public GetRays(): Ray[] {
+		return null;
+	}
+}
+
+class RaySource extends LightSource {
+	public GetRays(): Ray[] {
+		return [new Ray(this.Point1, this.Point2)];
+	}
+}
+
+class ParallelRaysSource extends LightSource {
+	readonly Distance: number = 100;
+	public GetRays(): Ray[] {
+		var sourceRay = new Ray(this.Point1, this.Point2);
+
+		var rays: Ray[] = [];
+
+		var createPoint = sourceRay.StartPoint;
+
+		var angle = Math.atan2(sourceRay.DirectionPoint.y - sourceRay.StartPoint.y, sourceRay.DirectionPoint.x - sourceRay.StartPoint.x);
+
+		for (let rayIndex = 0; rayIndex < Math.floor(GetDistance(this.Point1, this.Point2) / this.Distance); rayIndex++) {
+			var thirdAngle = Math.PI / 2 - angle;
+
+			var directionalPoint = new DOMPoint(Math.cos(-thirdAngle) * this.Distance + createPoint.x, Math.sin(-thirdAngle) * this.Distance + createPoint.y);
+
+			var ray = new Ray(createPoint, directionalPoint);
+
+			createPoint = GetRaySegment(sourceRay, createPoint, this.Distance).point2;
+
+			rays.push(ray);
+		}
+
+		return rays;
+	}
+}
+
 class Mirror extends OpticalElement {
 	public GetProcessedRay(ray: Ray): Ray {
 		let intersection = ray.GetIntersecion(this);
@@ -290,19 +351,23 @@ class Mirror extends OpticalElement {
 
 //focusing lens
 class Lens extends OpticalElement {
-	private MainOpticalAxis: Line;
+	private mainOpticalAxis: Line;
 	public FocusDistance: number;
+
+	public get MainOpticalAxis() {
+		return this.mainOpticalAxis;
+	}
 
 	public GetProcessedRay(ray: Ray): Ray {
 		let intersection = ray.GetIntersecion(this);
 		if (intersection) {
-			var mid = this.line.GetMidPoint();
-			var ray1 = new Ray(mid, this.MainOpticalAxis.GetPointByX(0));
-			var ray2 = new Ray(mid, this.MainOpticalAxis.GetPointByX(screen.width));
+			let mid = this.line.GetMidPoint();
+			let ray1 = new Ray(mid, this.mainOpticalAxis.GetPointByX(0));
+			let ray2 = new Ray(mid, this.mainOpticalAxis.GetPointByX(screen.width));
 
-			var normalToAxis = this.MainOpticalAxis.GetNormal(ray.StartPoint);
+			let normalToAxis = this.mainOpticalAxis.GetNormal(ray.StartPoint);
 
-			var intersectRay1 = false;
+			let intersectRay1 = false;
 
 			if (normalToAxis.GetIntersection(ray1.Line)) {
 				intersectRay1 = true;
@@ -311,15 +376,13 @@ class Lens extends OpticalElement {
 				intersectRay1 = false;
 			}
 
-			var distanceToLens = GetDistance(mid, normalToAxis.GetIntersection(this.MainOpticalAxis));
-
-			var infiniteLine = new Line();
+			let infiniteLine = new Line();
 			infiniteLine.k = this.Line.k;
 			infiniteLine.b = this.Line.b;
 
-			var parallelLineToRay = ray.Line.GetParallelLine(mid);
+			let parallelLineToRay = ray.Line.GetParallelLine(mid);
 
-			var focalPoint: DOMPoint = null;
+			let focalPoint: DOMPoint = null;
 			if (intersectRay1) {
 				focalPoint = GetRaySegment(ray2, ray2.StartPoint, this.FocusDistance).point2;
 			}
@@ -327,19 +390,19 @@ class Lens extends OpticalElement {
 				focalPoint = GetRaySegment(ray1, ray1.StartPoint, this.FocusDistance).point2;
 			}
 
-			var normalThroughFocus = this.MainOpticalAxis.GetNormal(focalPoint);
+			let normalThroughFocus = this.mainOpticalAxis.GetNormal(focalPoint);
 
-			var pointProjection = parallelLineToRay.GetIntersection(normalThroughFocus);
+			let pointProjection = parallelLineToRay.GetIntersection(normalThroughFocus);
 
 			return new Ray(intersection, pointProjection);
 		}
 		return null;
 	}
 	protected RebuildOpticalElement(): void {
-		this.line = this.line.RefreshLine(this.point1, this.point2);
-		this.line.x1 = Math.min(this.point1.x, this.point2.x);
-		this.line.x2 = Math.max(this.point1.x, this.point2.x);
-		this.MainOpticalAxis = this.line.GetNormal(this.line.GetMidPoint());
+		this.line = this.line.RefreshLine(this.Point1, this.Point2);
+		this.line.x1 = Math.min(this.Point1.x, this.Point2.x);
+		this.line.x2 = Math.max(this.Point1.x, this.Point2.x);
+		this.mainOpticalAxis = this.line.GetNormal(this.line.GetMidPoint());
 	}
 	public constructor(point1: DOMPoint, point2: DOMPoint) {
 		super(point1, point2);

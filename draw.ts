@@ -7,6 +7,49 @@ const mirrorThickness = 5;
 const lensThickness = 3;
 const rayThickness = 2;
 const rayShadowBlur = 10;
+const metricsColor = "#646464";
+const alpha = 0.8;
+const radius = 10;
+const metricsRadius = 4;
+const adornerColor = "#1E90FF";
+const adornerFillColor = "#FFFFFF";
+const adornerThickness = 2;
+const raySourceColor = "#303030";
+const raySourceThickness = 4;
+
+function DrawLine(line: Line, cnvsId: string) {
+	let x0Point = line.GetPointByX(0);
+	let xFullWidthPoint = line.GetPointByX(screen.width);
+
+	let element = document.getElementById(cnvsId);
+	if (element) {
+		let ctx = (<HTMLCanvasElement>(element)).getContext("2d");
+
+		ctx.beginPath();
+
+		ctx.moveTo(x0Point.x, x0Point.y);
+		ctx.lineTo(xFullWidthPoint.x, xFullWidthPoint.y);
+
+		ctx.stroke();
+	}
+}
+
+function DrawPoint(point: DOMPoint, cnvsId: string, radius: number, fill: boolean = false) {
+	let element = document.getElementById(cnvsId);
+	if (element) {
+		let ctx = (<HTMLCanvasElement>(element)).getContext("2d");
+
+		ctx.beginPath();
+
+		ctx.arc(point.x, point.y, radius, 0, 360);
+
+		ctx.stroke();
+
+		if (fill) {
+			ctx.fill();
+		}
+	}
+}
 
 function DrawMirror(mirror: Mirror, cnvsId: string) {
 	let element = document.getElementById(cnvsId);
@@ -39,6 +82,31 @@ function DrawLens(lens: Lens, cnvsId: string) {
 		ctx.lineTo(lens.Point2.x, lens.Point2.y);
 
 		ctx.stroke();
+
+		ctx.globalAlpha = alpha;
+		ctx.strokeStyle = metricsColor;
+
+		DrawLine(lens.MainOpticalAxis, cnvsId);
+
+		let mid = lens.Line.GetMidPoint();
+		let ray1 = new Ray(mid, lens.MainOpticalAxis.GetPointByX(0));
+		let ray2 = new Ray(mid, lens.MainOpticalAxis.GetPointByX(screen.width));
+
+		let backF = GetRaySegment(ray1, ray1.StartPoint, lens.FocusDistance);
+		let back2F = GetRaySegment(ray1, backF.point2, lens.FocusDistance);
+
+		let forwardF = GetRaySegment(ray2, ray2.StartPoint, lens.FocusDistance);
+		let forwardF2F = GetRaySegment(ray2, forwardF.point2, lens.FocusDistance);
+
+		ctx.strokeStyle = metricsColor;
+		ctx.fillStyle = adornerFillColor;
+
+		DrawPoint(backF.point2, cnvsId, metricsRadius, true);
+		DrawPoint(back2F.point2, cnvsId, metricsRadius, true);
+		DrawPoint(forwardF.point2, cnvsId, metricsRadius, true);
+		DrawPoint(forwardF2F.point2, cnvsId, metricsRadius, true);
+
+		ctx.globalAlpha = 1;
 	}
 }
 
@@ -101,10 +169,22 @@ function DrawProcessedRay(ray: ProcessedRay | Ray, cnvsId: string) {
 	}
 }
 
-const Radius = 10;
-const AdornerColor = "#1E90FF";
-const AdornerFillColor = "#FFFFFF";
-const AdornerThickness = 2;
+function DrawRaysSource(point1: DOMPoint, point2: DOMPoint, cnvsId: string) {
+	let element = document.getElementById(cnvsId);
+	if (element) {
+		let ctx = (<HTMLCanvasElement>(element)).getContext("2d");
+
+		ctx.strokeStyle = raySourceColor;
+		ctx.lineWidth = raySourceThickness;
+
+		ctx.beginPath();
+
+		ctx.moveTo(point1.x, point1.y);
+		ctx.lineTo(point2.x, point2.y);
+
+		ctx.stroke();
+	}
+}
 
 interface AdornerMoved {
 	(): void;
@@ -118,7 +198,7 @@ class Adorner {
 	public Center: DOMPoint;
 
 	private MouseDown(ev: MouseEvent) {
-		if (GetDistance(new DOMPoint(ev.pageX, ev.pageY), this.Center) < Radius) {
+		if (GetDistance(new DOMPoint(ev.pageX, ev.pageY), this.Center) < radius) {
 			this.insideAdorner = true;
 		}
 		else {
@@ -160,12 +240,12 @@ class Adorner {
 		if (element) {
 			let ctx = (<HTMLCanvasElement>(element)).getContext("2d");
 
-			ctx.strokeStyle = AdornerColor;
-			ctx.lineWidth = AdornerThickness;
-			ctx.fillStyle = AdornerFillColor;
+			ctx.strokeStyle = adornerColor;
+			ctx.lineWidth = adornerThickness;
+			ctx.fillStyle = adornerFillColor;
 
 			ctx.beginPath();
-			ctx.arc(this.Center.x, this.Center.y, Radius, 0, Math.PI * 2);
+			ctx.arc(this.Center.x, this.Center.y, radius, 0, Math.PI * 2);
 			ctx.closePath();
 
 			ctx.fill();
@@ -187,9 +267,9 @@ class Adorner {
 
 class ChangeableObject {
 	protected adorners: Adorner[];
-	protected object: OpticalElement | Ray;
+	protected object: OpticalElement | LightSource;
 
-	public get Object(): OpticalElement | Ray {
+	public get Object(): OpticalElement | LightSource {
 		return this.object;
 	}
 
@@ -199,16 +279,16 @@ class ChangeableObject {
 }
 
 class VisualRay extends ChangeableObject {
-	private cnvsId: string;
-	private ray: Ray;
+	protected cnvsId: string;
+	protected ray: LightSource;
 
-	private UpdateRay() {
-		this.ray.StartPoint = this.adorners[0].Center;
-		this.ray.DirectionPoint = this.adorners[1].Center;
+	protected UpdateRay() {
+		this.ray.Point1 = this.adorners[0].Center;
+		this.ray.Point2 = this.adorners[1].Center;
 	}
 
-	public get Ray(): Ray {
-		return this.ray;
+	public get Rays(): Ray[] {
+		return this.ray.GetRays();
 	}
 
 	public constructor(cnvsId: string) {
@@ -220,7 +300,7 @@ class VisualRay extends ChangeableObject {
 
 		this.adorners = [firstAdorner, secondAdorner];
 
-		this.ray = new Ray(firstAdorner.Center, secondAdorner.Center);
+		this.ray = new RaySource(firstAdorner.Center, secondAdorner.Center);
 		this.object = this.ray;
 
 		firstAdorner.AdornerMoved = this.UpdateRay.bind(this);
@@ -228,7 +308,35 @@ class VisualRay extends ChangeableObject {
 	}
 
 	public Draw(): void {
-		//DrawProcessedRay(this.ray, this.cnvsId);
+		for (let index = 0; index < this.adorners.length; index++) {
+			this.adorners[index].Draw();
+		}
+	}
+}
+
+class VisualRarallelRays extends VisualRay {
+	public get Rays(): Ray[] {
+		return this.ray.GetRays();
+	}
+
+	public constructor(cnvsId: string) {
+		super(cnvsId);
+		this.cnvsId = cnvsId;
+
+		let firstAdorner = new Adorner(new DOMPoint(0, 0), this.cnvsId);
+		let secondAdorner = new Adorner(new DOMPoint(100, 100), this.cnvsId);
+
+		this.adorners = [firstAdorner, secondAdorner];
+
+		this.ray = new ParallelRaysSource(firstAdorner.Center, secondAdorner.Center);
+		this.object = this.ray;
+
+		firstAdorner.AdornerMoved = this.UpdateRay.bind(this);
+		secondAdorner.AdornerMoved = this.UpdateRay.bind(this);
+	}
+
+	public Draw(): void {
+		DrawRaysSource(this.ray.Point1, this.ray.Point2, this.cnvsId);
 		for (let index = 0; index < this.adorners.length; index++) {
 			this.adorners[index].Draw();
 		}
@@ -349,10 +457,10 @@ class Scene {
 	private cnvsId: string;
 
 	private opticalElements: ChangeableObject[];
-	private rays: VisualRay[];
+	private raysources: VisualRay[];
 
-	public get Rays(): VisualRay[] {
-		return this.rays;
+	public get RaySources(): VisualRay[] {
+		return this.raysources;
 	}
 
 	public get CnvsId(): string {
@@ -366,11 +474,11 @@ class Scene {
 	constructor(cnvsId: string) {
 		this.cnvsId = cnvsId;
 		this.opticalElements = [];
-		this.rays = [];
+		this.raysources = [];
 	}
 
 	public AddRay(ev: MouseEvent): void {
-		this.rays.push(new VisualRay(this.cnvsId));
+		this.raysources.push(new VisualRarallelRays(this.cnvsId));
 	}
 
 	public AddMirror(ev: MouseEvent): void {
@@ -382,7 +490,7 @@ class Scene {
 	}
 
 	public BindClickEvent(id: string, action: action): void {
-		var element = document.getElementById(id);
+		let element = document.getElementById(id);
 		if (element) {
 			switch (action) {
 				case "addray":
@@ -403,7 +511,7 @@ class Scene {
 
 type action = "addray" | "addmirror" | "addlens";
 
-var scene = new Scene("playground");
+let scene = new Scene("playground");
 
 function Draw(scene: Scene): void {
 	let element = document.getElementById(scene.CnvsId);
@@ -412,22 +520,24 @@ function Draw(scene: Scene): void {
 		let rect = element.getBoundingClientRect();
 		ctx.clearRect(0, 0, rect.width, rect.height);
 
-		for (let rayInd = 0; rayInd < scene.Rays.length; rayInd++) {
-			let opticalElements: OpticalElement[] = [];
-			let value = scene.Rays[rayInd];
+		let rays: Ray[] = [];
+		let opticalElements: OpticalElement[] = [];
 
-			for (let opticalElementInd = 0; opticalElementInd < scene.OpticalElements.length; opticalElementInd++) {
-				let value = scene.OpticalElements[opticalElementInd];
-				if (!(value.Object instanceof Ray) && value.Object) {
-					opticalElements.push(value.Object);
-					value.Draw();
-				}
+		for (let index = 0; index < scene.RaySources.length; index++) {
+			scene.RaySources[index].Draw();
+			rays = rays.concat(scene.RaySources[index].Rays);
+		}
+
+		for (let index = 0; index < scene.OpticalElements.length; index++) {
+			scene.OpticalElements[index].Draw();
+			if (scene.OpticalElements[index].Object instanceof OpticalElement) {
+				opticalElements.push(<OpticalElement>scene.OpticalElements[index].Object);
 			}
-			let processedRay = ProcessRay(opticalElements, value.Ray);
-			if (processedRay) {
-				DrawProcessedRay(processedRay, scene.CnvsId);
-			}
-			value.Draw();
+		}
+
+		for (let index = 0; index < rays.length; index++) {
+			var processedRay = ProcessRay(opticalElements, rays[index]);
+			DrawProcessedRay(processedRay, scene.CnvsId);
 		}
 	}
 	requestAnimationFrame(() => { Draw(scene) });
