@@ -478,6 +478,10 @@ class Scene {
 	}
 
 	public AddRay(ev: MouseEvent): void {
+		this.raysources.push(new VisualRay(this.cnvsId));
+	}
+
+	public AddParallelRays(ev: MouseEvent): void {
 		this.raysources.push(new VisualRarallelRays(this.cnvsId));
 	}
 
@@ -502,6 +506,9 @@ class Scene {
 				case "addlens":
 					element.addEventListener("click", this.AddLens.bind(this));
 					break;
+				case "addparallelrays":
+					element.addEventListener("click", this.AddParallelRays.bind(this));
+					break;
 				default:
 					break;
 			}
@@ -509,7 +516,7 @@ class Scene {
 	}
 }
 
-type action = "addray" | "addmirror" | "addlens";
+type action = "addray" | "addmirror" | "addlens" | "addparallelrays";
 
 let scene = new Scene("playground");
 
@@ -546,6 +553,7 @@ function Draw(scene: Scene): void {
 this.onload = () => {
 	Draw(scene);
 	scene.BindClickEvent("addRay", "addray");
+	scene.BindClickEvent("addRarallelRays", "addparallelrays");
 	scene.BindClickEvent("addMirror", "addmirror");
 	scene.BindClickEvent("addLens", "addlens");
 }

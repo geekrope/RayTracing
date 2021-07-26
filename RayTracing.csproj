@@ -79,9 +79,10 @@
   <ItemGroup>
     <Content Include="app.css" />
     <Content Include="index.html" />
+    <Content Include="Resources\parallelRays.svg" />
     <Content Include="Resources\prism.svg" />
     <Content Include="Resources\ray.svg" />
-    <Content Include="Resources\reflective-fabric.svg" />
+    <Content Include="Resources\reflection.svg" />
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>

@@ -430,6 +430,9 @@ var Scene = /** @class */ (function () {
         configurable: true
     });
     Scene.prototype.AddRay = function (ev) {
+        this.raysources.push(new VisualRay(this.cnvsId));
+    };
+    Scene.prototype.AddParallelRays = function (ev) {
         this.raysources.push(new VisualRarallelRays(this.cnvsId));
     };
     Scene.prototype.AddMirror = function (ev) {
@@ -450,6 +453,9 @@ var Scene = /** @class */ (function () {
                     break;
                 case "addlens":
                     element.addEventListener("click", this.AddLens.bind(this));
+                    break;
+                case "addparallelrays":
+                    element.addEventListener("click", this.AddParallelRays.bind(this));
                     break;
                 default:
                     break;
@@ -487,6 +493,7 @@ function Draw(scene) {
 this.onload = function () {
     Draw(scene);
     scene.BindClickEvent("addRay", "addray");
+    scene.BindClickEvent("addRarallelRays", "addparallelrays");
     scene.BindClickEvent("addMirror", "addmirror");
     scene.BindClickEvent("addLens", "addlens");
 };
