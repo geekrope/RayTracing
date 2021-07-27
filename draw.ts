@@ -25,7 +25,7 @@ function DrawPolygon(points: DOMPoint[], cnvsId: string, fill: boolean = false) 
 	if (element) {
 		let ctx = (<HTMLCanvasElement>(element)).getContext("2d");
 
-		if (ctx) {			
+		if (ctx) {
 			ctx.beginPath();
 
 			if (points.length > 0) {
@@ -91,12 +91,7 @@ function DrawMirror(mirror: Mirror, cnvsId: string) {
 			ctx.strokeStyle = mirrorColor;
 			ctx.lineWidth = mirrorThickness;
 
-			ctx.beginPath();
-
-			ctx.moveTo(mirror.Point1.x, mirror.Point1.y);
-			ctx.lineTo(mirror.Point2.x, mirror.Point2.y);
-
-			ctx.stroke();
+			DrawSegment(mirror.Point1, mirror.Point2, cnvsId);
 		}
 	}
 }
@@ -252,11 +247,7 @@ function DrawRaysSource(point1: DOMPoint, point2: DOMPoint, cnvsId: string) {
 			ctx.strokeStyle = raySourceColor;
 			ctx.lineWidth = raySourceThickness;
 
-			ctx.beginPath();
-
-			ctx.moveTo(point1.x, point1.y);
-			ctx.lineTo(point2.x, point2.y);
-			ctx.stroke();
+			DrawSegment(point1, point2, cnvsId);
 		}
 	}
 }
@@ -269,11 +260,14 @@ class Adorner {
 	private cnvsId: string;
 	private insideAdorner: boolean = false;
 	private clickPoint: DOMPoint;
+	private center: DOMPoint;
 
-	public Center: DOMPoint;
+	public get Center(): DOMPoint {
+		return this.center;
+	}
 
 	private MouseDown(ev: MouseEvent) {
-		if (GetDistance(new DOMPoint(ev.pageX, ev.pageY), this.Center) < radius) {
+		if (GetDistance(new DOMPoint(ev.pageX, ev.pageY), this.center) < radius) {
 			this.insideAdorner = true;
 		}
 		else {
@@ -284,8 +278,8 @@ class Adorner {
 
 	private MouseMove(ev: MouseEvent) {
 		if (this.insideAdorner) {
-			this.Center.x += ev.pageX - this.clickPoint.x;
-			this.Center.y += ev.pageY - this.clickPoint.y;
+			this.center.x += ev.pageX - this.clickPoint.x;
+			this.center.y += ev.pageY - this.clickPoint.y;
 		}
 		this.clickPoint = new DOMPoint(ev.pageX, ev.pageY);
 		if (this.AdornerMoved != null) {
@@ -297,10 +291,10 @@ class Adorner {
 		this.insideAdorner = false;
 	}
 
-	public constructor(center: DOMPoint, cnvsId: string) {
-		this.Center = center;
+	public constructor(center: DOMPoint, cnvsId: string) {		
 		this.cnvsId = cnvsId;
 		this.clickPoint = new DOMPoint();
+		this.center = center;
 
 		let element = document.getElementById(this.cnvsId);
 		if (element) {
@@ -372,7 +366,7 @@ class VisualRay extends ChangeableObject {
 	}
 
 	public get Rays(): Ray[] {
-		var rays = this.ray.GetRays()
+		var rays = this.ray.GetRays();
 		if (rays) {
 			return rays;
 		}
@@ -445,15 +439,6 @@ class VisualMirror extends ChangeableObject {
 		return this.mirror.Point2;
 	}
 
-	public set Point1(value: DOMPoint) {
-		this.mirror.Point1 = value;
-		this.adorners[0].Center = value;
-	}
-	public set Point2(value: DOMPoint) {
-		this.mirror.Point2 = value;
-		this.adorners[1].Center = value;
-	}
-
 	public get Mirror(): Mirror {
 		return this.mirror;
 	}
@@ -498,15 +483,6 @@ class VisualLens extends ChangeableObject {
 	}
 	public get Point2(): DOMPoint {
 		return this.lens.Point2;
-	}
-
-	public set Point1(value: DOMPoint) {
-		this.lens.Point1 = value;
-		this.adorners[0].Center = value;
-	}
-	public set Point2(value: DOMPoint) {
-		this.lens.Point2 = value;
-		this.adorners[1].Center = value;
 	}
 
 	public get Lens(): Lens {

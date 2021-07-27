@@ -122,6 +122,7 @@ class Line {
 		if (this.XInDeterminantSpace(x) && line.XInDeterminantSpace(x)) {
 			return this.GetPointByX(x);
 		}
+
 		return null;
 	}
 
@@ -222,7 +223,7 @@ class ProcessedRay {
 	public static Plus(ray: ProcessedRay, ray2: ProcessedRay): ProcessedRay {
 		let newRay = new ProcessedRay();
 		newRay.RefractionPoints = ray.RefractionPoints.concat(ray2.RefractionPoints);
-		newRay.Closed = ray.Closed || ray2.Closed;
+		newRay.Closed = ray2.Closed;
 		return newRay;
 	}
 }
@@ -231,13 +232,13 @@ class OpticalElement {
 	private point1: DOMPoint;
 	private point2: DOMPoint;
 
+	protected line: Line;
+
 	protected RebuildOpticalElement(): void {
 		this.line = this.line.RefreshLine(this.point1, this.point2);
 		this.line.x1 = Math.min(this.point1.x, this.point2.x);
 		this.line.x2 = Math.max(this.point1.x, this.point2.x);
-	}
-
-	protected line: Line;
+	}	
 
 	public get Line(): Line {
 		return this.line;
@@ -306,7 +307,7 @@ class RaySource extends LightSource {
 }
 
 class ParallelRaysSource extends LightSource {
-	readonly Distance: number = 100;
+	public readonly Distance: number = 50;
 	public GetRays(): Ray[] {
 		var sourceRay = new Ray(this.Point1, this.Point2);
 
@@ -316,7 +317,7 @@ class ParallelRaysSource extends LightSource {
 
 		var angle = Math.atan2(sourceRay.DirectionPoint.y - sourceRay.StartPoint.y, sourceRay.DirectionPoint.x - sourceRay.StartPoint.x);
 
-		for (let rayIndex = 0; rayIndex < Math.floor(GetDistance(this.Point1, this.Point2) / this.Distance); rayIndex++) {
+		for (let rayIndex = 0; rayIndex < Math.ceil(GetDistance(this.Point1, this.Point2) / this.Distance); rayIndex++) {
 			var thirdAngle = Math.PI / 2 - angle;
 
 			var directionalPoint = new DOMPoint(Math.cos(-thirdAngle) * this.Distance + createPoint.x, Math.sin(-thirdAngle) * this.Distance + createPoint.y);
@@ -352,6 +353,14 @@ class Mirror extends OpticalElement {
 //focusing lens
 class Lens extends OpticalElement {
 	private mainOpticalAxis: Line = new Line();
+
+	protected RebuildOpticalElement(): void {
+		this.line = this.line.RefreshLine(this.Point1, this.Point2);
+		this.line.x1 = Math.min(this.Point1.x, this.Point2.x);
+		this.line.x2 = Math.max(this.Point1.x, this.Point2.x);
+		this.mainOpticalAxis = this.line.GetNormal(this.line.GetMidPoint());
+	}
+
 	public FocusDistance: number;
 
 	public get MainOpticalAxis() {
@@ -400,19 +409,14 @@ class Lens extends OpticalElement {
 		}
 		return null;
 	}
-	protected RebuildOpticalElement(): void {
-		this.line = this.line.RefreshLine(this.Point1, this.Point2);
-		this.line.x1 = Math.min(this.Point1.x, this.Point2.x);
-		this.line.x2 = Math.max(this.Point1.x, this.Point2.x);
-		this.mainOpticalAxis = this.line.GetNormal(this.line.GetMidPoint());
-	}
+	
 	public constructor(point1: DOMPoint, point2: DOMPoint) {
 		super(point1, point2);
 		this.FocusDistance = 100;
 	}
 }
 
-const step = 1;
+const step = 2;
 
 function ProcessRay(elements: OpticalElement[], ray: Ray): ProcessedRay {
 	let processedRay = new ProcessedRay();

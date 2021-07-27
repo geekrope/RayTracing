@@ -90,10 +90,7 @@ function DrawMirror(mirror, cnvsId) {
         if (ctx) {
             ctx.strokeStyle = mirrorColor;
             ctx.lineWidth = mirrorThickness;
-            ctx.beginPath();
-            ctx.moveTo(mirror.Point1.x, mirror.Point1.y);
-            ctx.lineTo(mirror.Point2.x, mirror.Point2.y);
-            ctx.stroke();
+            DrawSegment(mirror.Point1, mirror.Point2, cnvsId);
         }
     }
 }
@@ -211,19 +208,16 @@ function DrawRaysSource(point1, point2, cnvsId) {
         if (ctx) {
             ctx.strokeStyle = raySourceColor;
             ctx.lineWidth = raySourceThickness;
-            ctx.beginPath();
-            ctx.moveTo(point1.x, point1.y);
-            ctx.lineTo(point2.x, point2.y);
-            ctx.stroke();
+            DrawSegment(point1, point2, cnvsId);
         }
     }
 }
 var Adorner = /** @class */ (function () {
     function Adorner(center, cnvsId) {
         this.insideAdorner = false;
-        this.Center = center;
         this.cnvsId = cnvsId;
         this.clickPoint = new DOMPoint();
+        this.center = center;
         var element = document.getElementById(this.cnvsId);
         if (element) {
             element.addEventListener("mousedown", this.MouseDown.bind(this));
@@ -232,8 +226,15 @@ var Adorner = /** @class */ (function () {
         }
         this.AdornerMoved = undefined;
     }
+    Object.defineProperty(Adorner.prototype, "Center", {
+        get: function () {
+            return this.center;
+        },
+        enumerable: false,
+        configurable: true
+    });
     Adorner.prototype.MouseDown = function (ev) {
-        if (GetDistance(new DOMPoint(ev.pageX, ev.pageY), this.Center) < radius) {
+        if (GetDistance(new DOMPoint(ev.pageX, ev.pageY), this.center) < radius) {
             this.insideAdorner = true;
         }
         else {
@@ -243,8 +244,8 @@ var Adorner = /** @class */ (function () {
     };
     Adorner.prototype.MouseMove = function (ev) {
         if (this.insideAdorner) {
-            this.Center.x += ev.pageX - this.clickPoint.x;
-            this.Center.y += ev.pageY - this.clickPoint.y;
+            this.center.x += ev.pageX - this.clickPoint.x;
+            this.center.y += ev.pageY - this.clickPoint.y;
         }
         this.clickPoint = new DOMPoint(ev.pageX, ev.pageY);
         if (this.AdornerMoved != null) {
@@ -379,20 +380,12 @@ var VisualMirror = /** @class */ (function (_super) {
         get: function () {
             return this.mirror.Point1;
         },
-        set: function (value) {
-            this.mirror.Point1 = value;
-            this.adorners[0].Center = value;
-        },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(VisualMirror.prototype, "Point2", {
         get: function () {
             return this.mirror.Point2;
-        },
-        set: function (value) {
-            this.mirror.Point2 = value;
-            this.adorners[1].Center = value;
         },
         enumerable: false,
         configurable: true
@@ -435,20 +428,12 @@ var VisualLens = /** @class */ (function (_super) {
         get: function () {
             return this.lens.Point1;
         },
-        set: function (value) {
-            this.lens.Point1 = value;
-            this.adorners[0].Center = value;
-        },
         enumerable: false,
         configurable: true
     });
     Object.defineProperty(VisualLens.prototype, "Point2", {
         get: function () {
             return this.lens.Point2;
-        },
-        set: function (value) {
-            this.lens.Point2 = value;
-            this.adorners[1].Center = value;
         },
         enumerable: false,
         configurable: true

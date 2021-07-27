@@ -211,7 +211,7 @@ var ProcessedRay = /** @class */ (function () {
     ProcessedRay.Plus = function (ray, ray2) {
         var newRay = new ProcessedRay();
         newRay.RefractionPoints = ray.RefractionPoints.concat(ray2.RefractionPoints);
-        newRay.Closed = ray.Closed || ray2.Closed;
+        newRay.Closed = ray2.Closed;
         return newRay;
     };
     return ProcessedRay;
@@ -306,7 +306,7 @@ var ParallelRaysSource = /** @class */ (function (_super) {
     __extends(ParallelRaysSource, _super);
     function ParallelRaysSource() {
         var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this.Distance = 100;
+        _this.Distance = 50;
         return _this;
     }
     ParallelRaysSource.prototype.GetRays = function () {
@@ -314,7 +314,7 @@ var ParallelRaysSource = /** @class */ (function (_super) {
         var rays = [];
         var createPoint = sourceRay.StartPoint;
         var angle = Math.atan2(sourceRay.DirectionPoint.y - sourceRay.StartPoint.y, sourceRay.DirectionPoint.x - sourceRay.StartPoint.x);
-        for (var rayIndex = 0; rayIndex < Math.floor(GetDistance(this.Point1, this.Point2) / this.Distance); rayIndex++) {
+        for (var rayIndex = 0; rayIndex < Math.ceil(GetDistance(this.Point1, this.Point2) / this.Distance); rayIndex++) {
             var thirdAngle = Math.PI / 2 - angle;
             var directionalPoint = new DOMPoint(Math.cos(-thirdAngle) * this.Distance + createPoint.x, Math.sin(-thirdAngle) * this.Distance + createPoint.y);
             var ray = new Ray(createPoint, directionalPoint);
@@ -351,6 +351,12 @@ var Lens = /** @class */ (function (_super) {
         _this.FocusDistance = 100;
         return _this;
     }
+    Lens.prototype.RebuildOpticalElement = function () {
+        this.line = this.line.RefreshLine(this.Point1, this.Point2);
+        this.line.x1 = Math.min(this.Point1.x, this.Point2.x);
+        this.line.x2 = Math.max(this.Point1.x, this.Point2.x);
+        this.mainOpticalAxis = this.line.GetNormal(this.line.GetMidPoint());
+    };
     Object.defineProperty(Lens.prototype, "MainOpticalAxis", {
         get: function () {
             return this.mainOpticalAxis;
@@ -391,15 +397,9 @@ var Lens = /** @class */ (function (_super) {
         }
         return null;
     };
-    Lens.prototype.RebuildOpticalElement = function () {
-        this.line = this.line.RefreshLine(this.Point1, this.Point2);
-        this.line.x1 = Math.min(this.Point1.x, this.Point2.x);
-        this.line.x2 = Math.max(this.Point1.x, this.Point2.x);
-        this.mainOpticalAxis = this.line.GetNormal(this.line.GetMidPoint());
-    };
     return Lens;
 }(OpticalElement));
-var step = 1;
+var step = 2;
 function ProcessRay(elements, ray) {
     var processedRay = new ProcessedRay();
     processedRay.RefractionPoints = [ray.StartPoint];
